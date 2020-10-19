@@ -1,4 +1,5 @@
 import json
+import networkx as nx
 
 materials_json = json.load(open("materials"))
 
@@ -107,13 +108,33 @@ def similarity_tags (tags1, tags2, method='jaccard'):
     if (method == 'jaccard'):
         return len((tags1 & tags2))/len((tags1 | tags2))
     if (method == 'matching'):
+        
+        #count and remove exact matches
+        exact_match = set()
+        for t in tags1:
+            if t in tags2:
+                exact_match.add(t)
+        tags1 = tags1-exact_match
+        tags2 = tags2-exact_match
+        
+        #build bipartite graph between tags that remain
         tl1 = list(tags1)
         tl2 = list(tags2)
+        g = nx.Graph()
         for ta in tl1:
             for tb in tl2:
-                print (tag_match_value(ta, tb), end=' ')
-            print ()
-        return 0.
+                tmv = tag_match_value(ta, tb)
+                g.add_edge(ta, tb, weight=tmv)
+
+        print (g)
+        
+        bipartmatch = nx.max_weight_matching(g) #returns a set of pairs
+
+        val = 0
+        for a, b in bipartmatch:
+            val += g[a][b]['weight']
+
+        return (val+len(exact_match)) / (len(exact_match) + 2*(len(tags1)+len(tags2)))
 
 #computes similarity between two materials
 def similarity_material (mat1, mat2, method='jaccard'):
