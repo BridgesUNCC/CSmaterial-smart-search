@@ -1,5 +1,6 @@
 import json
 import networkx as nx
+import sys
 
 materials_json = json.load(open("materials"))
 
@@ -94,7 +95,7 @@ def tag_match_value(t1, t2):
         #print (str(tp1)+ "," + str(tp2))
 
         first_diff = 0
-        while tp1[first_diff] == tp2[first_diff]:
+        while first_diff != min(len(tp1), len(tp2)) and tp1[first_diff] == tp2[first_diff]:
             first_diff = first_diff + 1
 
         d= first_diff -1
@@ -126,8 +127,7 @@ def similarity_tags (tags1, tags2, method='jaccard'):
                 tmv = tag_match_value(ta, tb)
                 g.add_edge(ta, tb, weight=tmv)
 
-        print (g)
-        
+        #compute bipartite matching
         bipartmatch = nx.max_weight_matching(g) #returns a set of pairs
 
         val = 0
@@ -138,8 +138,8 @@ def similarity_tags (tags1, tags2, method='jaccard'):
 
 #computes similarity between two materials
 def similarity_material (mat1, mat2, method='jaccard'):
-    print (mat1)
-    print (mat2)
+    #print (mat1)
+    #print (mat2)
     #extracting set of tags that are acm mappings
     tag1=set()
     for t in mat1['tags']:
@@ -154,6 +154,37 @@ def similarity_material (mat1, mat2, method='jaccard'):
     #print (tag2)
     
     return similarity_tags(tag1, tag2, method)
-    
-print (similarity_material(material_lookup[148], material_lookup[145], 'matching'))
 
+
+query = 154
+matchpool = list(material_lookup)
+k = 20
+
+match_pairs = []
+for cand in matchpool:
+    if query != cand:
+        s = similarity_material(material_lookup[query], material_lookup[cand], 'matching')
+        match_pairs.append((cand, s))
+
+match_pairs = sorted(match_pairs, key=(lambda x: x[1]), reverse= True)
+
+
+#print ("query: ", query, material_lookup[query]['title'])
+
+print ("source","target","weight","junk", sep=',') 
+
+for i in range(0, k-1):
+    print ("query", match_pairs[i][0], match_pairs[i][1], material_lookup[match_pairs[i][0]]['title'], sep=',')
+
+for i in range(0, k-1):
+    for j in range(i+1, k-1):
+        if i !=j :
+            print (match_pairs[i][0], match_pairs[j][0],
+                   similarity_material(material_lookup[match_pairs[j][0]], material_lookup[match_pairs[i][0]], 'matching'),
+                   material_lookup[match_pairs[i][0]]['title'], sep=',')
+
+print("id", "label", sep=',', file=sys.stderr)
+print("query", "query", sep=',', file=sys.stderr)
+
+for i in range(0, k-1):
+    print (match_pairs[i][0], material_lookup[match_pairs[i][0]]['title'], sep=',', file=sys.stderr) 
