@@ -66,14 +66,43 @@ def tag_path(t):
     l.reverse()
     return l
 
+#return similarity value between two tags where the two tags have a
+#common ancestor at depth d (root is 0) and the first tag is l1 levels
+#deeper than the common ancestor and tag 2 is l2 levels deeper than
+#the common ancestor
+def tag_similarity (d, l1, l2):
+    #this formula is completely arbitrary but it gives reasonnable values:
+    #tag_sim(0, 2, 2) = 0.0033749999999999995
+    #tag_sim(1, 2, 2) = 0.026999999999999996
+    #tag_sim(2, 1, 1) = 0.44999999999999996
+    #tag_sim(3, 1, 1) = 0.6
+    #tag_sim(3, 2, 1) = 0.36
+    #tag_sim(3, 2, 2) = 0.21599999999999997
+
+
+    base = .15*(d+1)
+    return base**(l1+l2-1)
+
+#this assumes that t1 and t2 are part of the same acm ontology tree
 def tag_match_value(t1, t2):
     if t1 == t2:
         return 1
     else:
-        print (str(tag_path(t1))+ "," + str(tag_path(t2)))
-        return 0
+        tp1 = tag_path(t1)
+        tp2 = tag_path(t2)
+        #print (str(tp1)+ "," + str(tp2))
 
+        first_diff = 0
+        while tp1[first_diff] == tp2[first_diff]:
+            first_diff = first_diff + 1
 
+        d= first_diff -1
+        l1 = len(tp1)-first_diff
+        l2 = len(tp2)-first_diff
+        
+        return tag_similarity(d, l1, l2)
+
+#computes similarity between two sets of tags 
 def similarity_tags (tags1, tags2, method='jaccard'):
     if (method == 'jaccard'):
         return len((tags1 & tags2))/len((tags1 | tags2))
@@ -86,10 +115,11 @@ def similarity_tags (tags1, tags2, method='jaccard'):
             print ()
         return 0.
 
+#computes similarity between two materials
 def similarity_material (mat1, mat2, method='jaccard'):
     print (mat1)
     print (mat2)
-    #extracting list of tags that are acm mappings
+    #extracting set of tags that are acm mappings
     tag1=set()
     for t in mat1['tags']:
         if t['id'] in all_acm_ids:
@@ -99,9 +129,10 @@ def similarity_material (mat1, mat2, method='jaccard'):
         if t['id'] in all_acm_ids:
             tag2.add(t['id'])
 
-    print (tag1)
-    print (tag2)
+    #print (tag1)
+    #print (tag2)
     
     return similarity_tags(tag1, tag2, method)
     
 print (similarity_material(material_lookup[148], material_lookup[145], 'matching'))
+
