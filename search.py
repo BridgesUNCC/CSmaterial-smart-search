@@ -2,6 +2,12 @@ import json
 import networkx as nx
 import sys
 
+#you'll need to pip3 install networkx
+
+#get materials file and ontology_trees file here:
+# https://cs-materials-api.herokuapp.com/data/materials
+# https://cs-materials-api.herokuapp.com/data/ontology_trees
+
 materials_json = json.load(open("materials"))
 
 all_material_object = materials_json['data']['materials']
