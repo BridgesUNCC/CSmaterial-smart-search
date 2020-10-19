@@ -8,13 +8,14 @@ all_tags_object = materials_json['data']['tags']
 #print (all_material_object[0])
 #print (all_tags_object[0])
 
-
+#build a lookup table of materials keyed on their 'id'
 material_lookup = {}
 for m in all_material_object:
     material_lookup[m['id']]= m
 
 ontology_json = json.load(open("ontology_trees"))
 
+# return a set of all entry ids in a classification tree
 def classification_tree_to_set(root):
     my_set = set()
     my_set.add(root['id'])
@@ -23,11 +24,13 @@ def classification_tree_to_set(root):
         my_set = my_set | l # yes, that is a union operator
     return my_set
 
+# add a 'parent' field in a ontology tree to enable reverse traversals
 def add_parent_info(root):
     for c in root['children']:
         c['parent'] = root['id']
         add_parent_info(c)
 
+#build a lookup table that associate tag ids to the ontology entry
 def build_lookup(root, lookup = None):
     if lookup == None:
         lookup = {}
@@ -43,11 +46,31 @@ all_acm_ids = classification_tree_to_set(ontology_json['data']['acm'])
 
 acm_lookup = build_lookup(ontology_json['data']['acm'])
 
+
+#return the path from tag to the root
+#takes tag id (not tag object)
+def tag_path_reverse(t):
+    if 'parent' not in acm_lookup[t]:
+        return [t]
+    else:
+        l = list()
+        l.append(t)
+        l.extend(tag_path_reverse(acm_lookup[t]['parent']))
+        return l
+
+
+#return the path from root of the ontology to tag
+#takes tag id (not tag object)
+def tag_path(t):
+    l = tag_path_reverse(t)
+    l.reverse()
+    return l
+
 def tag_match_value(t1, t2):
     if t1 == t2:
         return 1
     else:
-        
+        print (str(tag_path(t1))+ "," + str(tag_path(t2)))
         return 0
 
 
