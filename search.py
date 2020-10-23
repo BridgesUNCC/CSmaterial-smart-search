@@ -1,6 +1,7 @@
 import json
 import networkx as nx
 import sys
+import requests
 
 #you'll need to pip3 install networkx
 
@@ -21,6 +22,11 @@ material_lookup = {}
 for m in all_material_object:
     material_lookup[m['id']]= m
 
+tags_lookup = {}
+for t in all_tags_object:
+    tags_lookup[t['id']]= t
+
+    
 ontology_json = json.load(open("ontology_trees"))
 
 # return a set of all entry ids in a classification tree
@@ -48,6 +54,16 @@ def build_lookup(root, lookup = None):
     return lookup
 
 add_parent_info(ontology_json['data']['acm'])
+
+# takes an id of a collection and returns a list of all the materials contained by that collection (not recursive)
+def all_materials_in_collection(id):
+    url = "https://cs-materials-api.herokuapp.com/data/material/meta?id=" + str(id)
+    r = requests.get(url)
+    mat = json.loads(r.text)['data']
+    ret = []
+    for c in mat['materials']:
+        ret.append (c['id'])
+    return ret 
 
 
 all_acm_ids = classification_tree_to_set(ontology_json['data']['acm'])
@@ -162,35 +178,69 @@ def similarity_material (mat1, mat2, method='jaccard'):
     return similarity_tags(tag1, tag2, method)
 
 
+
+
+def similarity_query(query, matchpool, k, algo):
+
+    match_pairs = []
+    for cand in matchpool:
+        if query != cand:
+            s = similarity_material(material_lookup[query], material_lookup[cand], algo)
+            match_pairs.append((cand, s))
+
+    match_pairs = sorted(match_pairs, key=(lambda x: x[1]), reverse= True)
+
+
+    #print ("query: ", query, material_lookup[query]['title'])
+
+    print ("source","target","weight","junk", sep=',') 
+
+    for i in range(0, k-1):
+        print ("query", match_pairs[i][0], match_pairs[i][1], material_lookup[match_pairs[i][0]]['title'], sep=',')
+
+    for i in range(0, k-1):
+        for j in range(i+1, k-1):
+            if i !=j :
+                print (match_pairs[i][0], match_pairs[j][0],
+                       similarity_material(material_lookup[match_pairs[j][0]], material_lookup[match_pairs[i][0]], 'matching'),
+                       material_lookup[match_pairs[i][0]]['title'], sep=',')
+
+    print("id", "label", sep=',', file=sys.stderr)
+    print("query", "query", sep=',', file=sys.stderr)
+
+    for i in range(0, k-1):
+        print (match_pairs[i][0], material_lookup[match_pairs[i][0]]['title'], sep=',', file=sys.stderr) 
+
+
+
+
 query = 154
 matchpool = list(material_lookup)
 k = 20
 
-match_pairs = []
-for cand in matchpool:
-    if query != cand:
-        s = similarity_material(material_lookup[query], material_lookup[cand], 'matching')
-        match_pairs.append((cand, s))
+# similarity_query(query, matchpool, k, 'matching')
+        
 
-match_pairs = sorted(match_pairs, key=(lambda x: x[1]), reverse= True)
+nifty = 264
+erik_ds=178
+kr_ds=185
 
+print (all_materials_in_collection(nifty))
 
-#print ("query: ", query, material_lookup[query]['title'])
+#takes a list of material ID and return all acm tags contained by 
+def all_acm_tags_in_list (l):
+    all_t = set()
+    for mid in l:
+        mat = material_lookup[mid]
+        for tags in mat['tags']:
+            all_t.add(tags['id'])
+    return all_t
 
-print ("source","target","weight","junk", sep=',') 
+print (all_acm_tags_in_list(all_materials_in_collection(erik_ds)))
+print (all_acm_tags_in_list(all_materials_in_collection(kr_ds)))
 
-for i in range(0, k-1):
-    print ("query", match_pairs[i][0], match_pairs[i][1], material_lookup[match_pairs[i][0]]['title'], sep=',')
+ds_tags = all_acm_tags_in_list(all_materials_in_collection(erik_ds)).intersection(all_acm_tags_in_list(all_materials_in_collection(kr_ds)))
 
-for i in range(0, k-1):
-    for j in range(i+1, k-1):
-        if i !=j :
-            print (match_pairs[i][0], match_pairs[j][0],
-                   similarity_material(material_lookup[match_pairs[j][0]], material_lookup[match_pairs[i][0]], 'matching'),
-                   material_lookup[match_pairs[i][0]]['title'], sep=',')
-
-print("id", "label", sep=',', file=sys.stderr)
-print("query", "query", sep=',', file=sys.stderr)
-
-for i in range(0, k-1):
-    print (match_pairs[i][0], material_lookup[match_pairs[i][0]]['title'], sep=',', file=sys.stderr) 
+print (ds_tags)
+for t in ds_tags:
+    print (tags_lookup[t])
