@@ -158,35 +158,38 @@ def similarity_tags (tags1, tags2, method='jaccard'):
 
         return (val+len(exact_match)) / (len(exact_match) + 2*(len(tags1)+len(tags2)))
 
-#computes similarity between two materials
-def similarity_material (mat1, mat2, method='jaccard'):
+#takes a list of material ID and return all acm tags contained by the materials
+def all_acm_tags_in_list (l : list) -> set:
+    all_t = set()
+    for mid in l:
+        mat = material_lookup[mid]
+        for tags in mat['tags']:
+            if tags['id'] in all_acm_ids:
+                all_t.add(tags['id'])
+    return all_t
+
+    
+#computes similarity between two materialIDs
+def similarity_material (mat1 :int, mat2: int, method='jaccard') -> float:
     #print (mat1)
     #print (mat2)
     #extracting set of tags that are acm mappings
-    tag1=set()
-    for t in mat1['tags']:
-        if t['id'] in all_acm_ids:
-            tag1.add(t['id'])
-    tag2=set()
-    for t in mat2['tags']:
-        if t['id'] in all_acm_ids:
-            tag2.add(t['id'])
+    tag1=all_acm_tags_in_list([ mat1 ] )
+    tag2=all_acm_tags_in_list([ mat2 ] )
 
     #print (tag1)
     #print (tag2)
     
     return similarity_tags(tag1, tag2, method)
 
-
-
-
-def similarity_query(query, matchpool, k, algo):
+# query is a list of tags
+#matchpool is a set of material ids
+def similarity_query_tags(query, matchpool, k, algo):
 
     match_pairs = []
     for cand in matchpool:
-        if query != cand:
-            s = similarity_material(material_lookup[query], material_lookup[cand], algo)
-            match_pairs.append((cand, s))
+        s = similarity_tags(query, all_acm_tags_in_list([ cand ]), algo)
+        match_pairs.append((cand, s))
 
     match_pairs = sorted(match_pairs, key=(lambda x: x[1]), reverse= True)
 
@@ -194,16 +197,15 @@ def similarity_query(query, matchpool, k, algo):
     #print ("query: ", query, material_lookup[query]['title'])
 
     print ("source","target","weight","junk", sep=',') 
-
     for i in range(0, k-1):
-        print ("query", match_pairs[i][0], match_pairs[i][1], material_lookup[match_pairs[i][0]]['title'], sep=',')
+        print ("query", match_pairs[i][0], match_pairs[i][1], sep=',')
 
     for i in range(0, k-1):
         for j in range(i+1, k-1):
             if i !=j :
                 print (match_pairs[i][0], match_pairs[j][0],
-                       similarity_material(material_lookup[match_pairs[j][0]], material_lookup[match_pairs[i][0]], 'matching'),
-                       material_lookup[match_pairs[i][0]]['title'], sep=',')
+                       similarity_material(material_lookup[match_pairs[j][0]]['id'], material_lookup[match_pairs[i][0]]['id'], 'matching'),
+                       sep=',')
 
     print("id", "label", sep=',', file=sys.stderr)
     print("query", "query", sep=',', file=sys.stderr)
@@ -211,36 +213,33 @@ def similarity_query(query, matchpool, k, algo):
     for i in range(0, k-1):
         print (match_pairs[i][0], material_lookup[match_pairs[i][0]]['title'], sep=',', file=sys.stderr) 
 
-
+        
+# query is a materialID
+# matchpool is a set of materialID
+def similarity_query(query, matchpool, k, algo):
+    similarity_query_tags(all_acm_tags_in_list([ query ]), matchpool, k, algo)
 
 
 query = 154
 matchpool = list(material_lookup)
+matchpool.remove(query)
 k = 20
 
-# similarity_query(query, matchpool, k, 'matching')
-        
+similarity_query_tags(all_acm_tags_in_list([ query ]), matchpool, k, 'matching')
 
-nifty = 264
-erik_ds=178
-kr_ds=185
 
-print (all_materials_in_collection(nifty))
+# nifty = 264
+# erik_ds=178
+# kr_ds=185
 
-#takes a list of material ID and return all acm tags contained by 
-def all_acm_tags_in_list (l):
-    all_t = set()
-    for mid in l:
-        mat = material_lookup[mid]
-        for tags in mat['tags']:
-            all_t.add(tags['id'])
-    return all_t
+# print (all_materials_in_collection(nifty))
 
-print (all_acm_tags_in_list(all_materials_in_collection(erik_ds)))
-print (all_acm_tags_in_list(all_materials_in_collection(kr_ds)))
 
-ds_tags = all_acm_tags_in_list(all_materials_in_collection(erik_ds)).intersection(all_acm_tags_in_list(all_materials_in_collection(kr_ds)))
+# print (all_acm_tags_in_list(all_materials_in_collection(erik_ds)))
+# print (all_acm_tags_in_list(all_materials_in_collection(kr_ds)))
 
-print (ds_tags)
-for t in ds_tags:
-    print (tags_lookup[t])
+# ds_tags = all_acm_tags_in_list(all_materials_in_collection(erik_ds)).intersection(all_acm_tags_in_list(all_materials_in_collection(kr_ds)))
+
+# print (ds_tags)
+# for t in ds_tags:
+#     print (tags_lookup[t])
