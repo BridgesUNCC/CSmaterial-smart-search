@@ -196,22 +196,22 @@ def similarity_query_tags(query, matchpool, k, algo):
 
     #print ("query: ", query, material_lookup[query]['title'])
 
-    print ("source","target","weight","junk", sep=',') 
+    print ("source","target","weight", sep=',', file=sys.stderr) 
     for i in range(0, k-1):
-        print ("query", match_pairs[i][0], match_pairs[i][1], sep=',')
+        print ("query", match_pairs[i][0], match_pairs[i][1], sep=',', file=sys.stderr)
 
     for i in range(0, k-1):
         for j in range(i+1, k-1):
             if i !=j :
                 print (match_pairs[i][0], match_pairs[j][0],
                        similarity_material(material_lookup[match_pairs[j][0]]['id'], material_lookup[match_pairs[i][0]]['id'], 'matching'),
-                       sep=',')
+                       sep=',', file=sys.stderr)
 
-    print("id", "label", sep=',', file=sys.stderr)
-    print("query", "query", sep=',', file=sys.stderr)
+    print("id", "label", sep=',', file=sys.stdout)
+    print("query", "query", sep=',', file=sys.stdout)
 
     for i in range(0, k-1):
-        print (match_pairs[i][0], material_lookup[match_pairs[i][0]]['title'], sep=',', file=sys.stderr) 
+        print (match_pairs[i][0], material_lookup[match_pairs[i][0]]['title'], sep=',', file=sys.stdout) 
 
         
 # query is a materialID
@@ -223,14 +223,27 @@ def similarity_query(query, matchpool, k, algo):
 query = 154
 matchpool = list(material_lookup)
 matchpool.remove(query)
-k = 20
+k = 5
 
-similarity_query_tags(all_acm_tags_in_list([ query ]), matchpool, k, 'matching')
+# similarity_query_tags(all_acm_tags_in_list([ query ]), matchpool, k, 'matching')
 
 
-# nifty = 264
-# erik_ds=178
-# kr_ds=185
+nifty = 264
+peachy = 263
+erik_ds=178
+kr_ds=185
+erik_parco=179
+kr_3112 = 266
+bk_CS1 = 326
+
+
+pdc_mats = all_materials_in_collection(peachy)
+pdc_mats.extend( all_materials_in_collection(erik_parco) )
+
+for n in all_materials_in_collection(bk_CS1):
+    print ("===", n, material_lookup[n]['title'], "===")
+    similarity_query_tags(all_acm_tags_in_list([ n ]), pdc_mats, k, 'matching')
+
 
 # print (all_materials_in_collection(nifty))
 
