@@ -10,25 +10,28 @@ from sklearn.manifold import MDS
 # https://cs-materials-api.herokuapp.com/data/materials
 # https://cs-materials-api.herokuapp.com/data/ontology_trees
 
-materials_json = json.load(open("materials"))
+#materials_json = json.load(open("materials"))
+materials_json = {}
 
-all_material_object = materials_json['data']['materials']
-all_tags_object = materials_json['data']['tags']
+all_material_object = None
+all_tags_object = None
 
 #print (all_material_object[0])
 #print (all_tags_object[0])
 
 #build a lookup table of materials keyed on their 'id'
 material_lookup = {}
-for m in all_material_object:
-    material_lookup[m['id']]= m
 
 tags_lookup = {}
-for t in all_tags_object:
-    tags_lookup[t['id']]= t
 
     
-ontology_json = json.load(open("ontology_trees"))
+#ontology_json = json.load(open("ontology_trees"))
+ontology_json = {}
+
+all_acm_ids = set() # set of all acm classification tag ids
+
+acm_lookup = {} #asssociate 'id' to an acm classification tag object
+
 
 # return a set of all entry ids in a classification tree
 def classification_tree_to_set(root):
@@ -54,7 +57,6 @@ def build_lookup(root, lookup = None):
         build_lookup(c, lookup)
     return lookup
 
-add_parent_info(ontology_json['data']['acm'])
 
 # takes an id of a collection and returns a list of all the materials contained by that collection (not recursive)
 def all_materials_in_collection(id):
@@ -66,10 +68,37 @@ def all_materials_in_collection(id):
         ret.append (c['id'])
     return ret 
 
+def update_model():
+    global materials_json
+    global all_material_object
+    global all_tags_object
+    global material_lookup
+    global tags_lookup
+    global ontology_json
+    global all_acm_ids
+    global acm_lookup
+    
+    materials_json = json.load(open("materials"))
 
-all_acm_ids = classification_tree_to_set(ontology_json['data']['acm'])
+    all_material_object = materials_json['data']['materials']
+    all_tags_object = materials_json['data']['tags']
 
-acm_lookup = build_lookup(ontology_json['data']['acm'])
+    material_lookup = {}
+    for m in all_material_object:
+        material_lookup[m['id']]= m
+
+    tags_lookup = {}
+    for t in all_tags_object:
+        tags_lookup[t['id']]= t
+    
+    ontology_json = json.load(open("ontology_trees"))
+
+    add_parent_info(ontology_json['data']['acm'])
+
+
+    all_acm_ids = classification_tree_to_set(ontology_json['data']['acm'])
+
+    acm_lookup = build_lookup(ontology_json['data']['acm'])
 
 
 #return the path from tag to the root
@@ -251,6 +280,8 @@ def similarity_query_tags(query, matchpool, k, algo):
 def similarity_query(query, matchpool, k, algo):
     similarity_query_tags(all_acm_tags_in_list([ query ]), matchpool, k, algo)
 
+
+update_model()
 
 query = 154 # KRS - HW - Binary trees
 query = 55 # Bacon Number imdb  bridges
