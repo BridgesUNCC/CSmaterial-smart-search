@@ -2,6 +2,7 @@ import json
 import networkx as nx
 import sys
 import requests
+from sklearn.manifold import MDS
 
 #you'll need to pip3 install networkx
 
@@ -186,6 +187,9 @@ def similarity_material (mat1 :int, mat2: int, method='jaccard') -> float:
 #matchpool is a set of material ids
 def similarity_query_tags(query, matchpool, k, algo):
 
+    sims = [ [ 0 ] * (k+1)  for i in range (0,k+1) ] 
+
+    
     match_pairs = []
     for cand in matchpool:
         s = similarity_tags(query, all_acm_tags_in_list([ cand ]), algo)
@@ -196,23 +200,51 @@ def similarity_query_tags(query, matchpool, k, algo):
 
     #print ("query: ", query, material_lookup[query]['title'])
 
-    print ("source","target","weight", sep=',', file=sys.stderr) 
-    for i in range(0, k-1):
-        print ("query", match_pairs[i][0], match_pairs[i][1], sep=',', file=sys.stderr)
 
+    #print (sims)
+    
+    #print ("source","target","weight", sep=',', file=sys.stderr) 
+    for i in range(0, k-1):
+        sims[0][i+1] = 1 - match_pairs[i][1]
+        sims[i+1][0] = 1 - match_pairs[i][1]
+        #print ("query", match_pairs[i][0], match_pairs[i][1], sep=',', file=sys.stderr)
+    
+        
     for i in range(0, k-1):
         for j in range(i+1, k-1):
             if i !=j :
-                print (match_pairs[i][0], match_pairs[j][0],
-                       similarity_material(material_lookup[match_pairs[j][0]]['id'], material_lookup[match_pairs[i][0]]['id'], 'matching'),
-                       sep=',', file=sys.stderr)
+                ls = similarity_material(material_lookup[match_pairs[j][0]]['id'], material_lookup[match_pairs[i][0]]['id'], 'matching')
+                sims[i+1][j+1] = 1 - ls
+                sims[j+1][i+1] = 1 - ls
+                #print (match_pairs[i][0], match_pairs[j][0], ls, sep=',', file=sys.stderr)
 
-    print("id", "label", sep=',', file=sys.stdout)
-    print("query", "query", sep=',', file=sys.stdout)
+                
 
-    for i in range(0, k-1):
-        print (match_pairs[i][0], material_lookup[match_pairs[i][0]]['title'], sep=',', file=sys.stdout) 
+    model = MDS(n_components=2, dissimilarity='precomputed', random_state=1)
+    out = model.fit_transform(sims)
 
+    norm = 0
+    for i in range (0, k):
+        if (abs(out[i][0]) > norm):
+            norm = abs(out[i][0])
+        if (abs(out[i][1]) > norm):
+            norm = abs(out[i][1])
+    
+    #print (out)
+
+    for i in range (0, k):
+        name = "\"query\""
+        if (i > 0):
+            name = "\""+material_lookup[match_pairs[i-1][0]]['title']+"\""
+        print (out[i][0]/norm, out[i][1]/norm, name,  sep=' ')
+    
+    # print("id", "label", sep=',', file=sys.stdout)
+    # print("query", "query", sep=',', file=sys.stdout)
+
+    # for i in range(0, k-1):
+    #     print (match_pairs[i][0], material_lookup[match_pairs[i][0]]['title'], sep=',', file=sys.stdout) 
+
+    
         
 # query is a materialID
 # matchpool is a set of materialID
@@ -220,12 +252,14 @@ def similarity_query(query, matchpool, k, algo):
     similarity_query_tags(all_acm_tags_in_list([ query ]), matchpool, k, algo)
 
 
-query = 154
+query = 154 # KRS - HW - Binary trees
+query = 55 # Bacon Number imdb  bridges
+query = 237 # 3112 module 3 project
 matchpool = list(material_lookup)
 matchpool.remove(query)
-k = 5
+k = 10
 
-# similarity_query_tags(all_acm_tags_in_list([ query ]), matchpool, k, 'matching')
+
 
 
 nifty = 264
@@ -240,9 +274,11 @@ bk_CS1 = 326
 pdc_mats = all_materials_in_collection(peachy)
 pdc_mats.extend( all_materials_in_collection(erik_parco) )
 
-for n in all_materials_in_collection(bk_CS1):
-    print ("===", n, material_lookup[n]['title'], "===")
-    similarity_query_tags(all_acm_tags_in_list([ n ]), pdc_mats, k, 'matching')
+similarity_query_tags(all_acm_tags_in_list([ query ]), pdc_mats, k, 'matching')
+
+# for n in all_materials_in_collection(bk_CS1):
+#     print ("===", n, material_lookup[n]['title'], "===")
+#     similarity_query_tags(all_acm_tags_in_list([ n ]), pdc_mats, k, 'matching')
 
 
 # print (all_materials_in_collection(nifty))
