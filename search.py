@@ -77,8 +77,11 @@ def update_model():
     global ontology_json
     global all_acm_ids
     global acm_lookup
+
+    # 
+    # https://cs-materials-api.herokuapp.com/data/ontology_trees
     
-    materials_json = json.load(open("materials"))
+    materials_json = json.load(requests.get("https://cs-materials-api.herokuapp.com/data/materials").text)
 
     all_material_object = materials_json['data']['materials']
     all_tags_object = materials_json['data']['tags']
