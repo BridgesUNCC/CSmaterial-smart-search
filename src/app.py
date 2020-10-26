@@ -1,8 +1,16 @@
+from flask import Flask, request, Response
+from apscheduler.schedulers.background import BackgroundScheduler
+import atexit
+
+
 import json
 import networkx as nx
 import sys
 import requests
 from sklearn.manifold import MDS
+
+app = Flask(__name__)
+
 
 #you'll need to pip3 install networkx
 
@@ -32,6 +40,10 @@ all_acm_ids = set() # set of all acm classification tag ids
 
 acm_lookup = {} #asssociate 'id' to an acm classification tag object
 
+
+@app.route('/')
+def homepage():
+    return 'homepage'
 
 # return a set of all entry ids in a classification tree
 def classification_tree_to_set(root):
@@ -81,7 +93,7 @@ def update_model():
     # 
     # https://cs-materials-api.herokuapp.com/data/ontology_trees
     
-    materials_json = json.load(requests.get("https://cs-materials-api.herokuapp.com/data/materials").text)
+    materials_json = json.loads(requests.get("https://cs-materials-api.herokuapp.com/data/materials").text)
 
     all_material_object = materials_json['data']['materials']
     all_tags_object = materials_json['data']['tags']
@@ -94,7 +106,7 @@ def update_model():
     for t in all_tags_object:
         tags_lookup[t['id']]= t
     
-    ontology_json = json.load(open("ontology_trees"))
+    ontology_json = json.loads(requests.get("https://cs-materials-api.herokuapp.com/data/ontology_trees").text)
 
     add_parent_info(ontology_json['data']['acm'])
 
@@ -219,9 +231,12 @@ def similarity_material (mat1 :int, mat2: int, method='jaccard') -> float:
 #matchpool is a set of material ids
 def similarity_query_tags(query, matchpool, k, algo):
 
+    k = min (k, len(matchpool))
+    
     sims = [ [ 0 ] * (k+1)  for i in range (0,k+1) ] 
 
-    
+
+  
     match_pairs = []
     for cand in matchpool:
         s = similarity_tags(query, all_acm_tags_in_list([ cand ]), algo)
@@ -236,14 +251,14 @@ def similarity_query_tags(query, matchpool, k, algo):
     #print (sims)
     
     #print ("source","target","weight", sep=',', file=sys.stderr) 
-    for i in range(0, k-1):
+    for i in range(0, k):
         sims[0][i+1] = 1 - match_pairs[i][1]
         sims[i+1][0] = 1 - match_pairs[i][1]
         #print ("query", match_pairs[i][0], match_pairs[i][1], sep=',', file=sys.stderr)
     
         
-    for i in range(0, k-1):
-        for j in range(i+1, k-1):
+    for i in range(0, k):
+        for j in range(i+1, k):
             if i !=j :
                 ls = similarity_material(material_lookup[match_pairs[j][0]]['id'], material_lookup[match_pairs[i][0]]['id'], 'matching')
                 sims[i+1][j+1] = 1 - ls
@@ -256,59 +271,180 @@ def similarity_query_tags(query, matchpool, k, algo):
     out = model.fit_transform(sims)
 
     norm = 0
-    for i in range (0, k):
+    for i in range (0, k+1):
         if (abs(out[i][0]) > norm):
             norm = abs(out[i][0])
         if (abs(out[i][1]) > norm):
             norm = abs(out[i][1])
-    
+
+    for i in range (0, k+1):
+        out[i][0] = out[i][0]/norm
+        out[i][1] = out[i][1]/norm
+            
     #print (out)
 
-    for i in range (0, k):
+    ret = {}
+    ret ['query'] = {
+        "tags": list(query),
+        "mds_x": out[0][0],
+        "mds_y": out[0][1]
+    }
+    ret ['result'] = []
+    for i in range (1, k+1):
+        ret['result'].append({
+            'id': match_pairs[i-1][0],
+            'title': material_lookup[match_pairs[i-1][0]]['title'],
+            'similarity': match_pairs[i-1][1],
+            "mds_x": out[i][0],
+            "mds_y": out[i][1]
+            })
+    
+    
+    
+    for i in range (0, k+1):
         name = "\"query\""
         if (i > 0):
             name = "\""+material_lookup[match_pairs[i-1][0]]['title']+"\""
-        print (out[i][0]/norm, out[i][1]/norm, name,  sep=' ')
-    
+        print (out[i][0], out[i][1], name,  sep=' ')
+
     # print("id", "label", sep=',', file=sys.stdout)
     # print("query", "query", sep=',', file=sys.stdout)
 
     # for i in range(0, k-1):
     #     print (match_pairs[i][0], material_lookup[match_pairs[i][0]]['title'], sep=',', file=sys.stdout) 
 
+    return ret
     
-        
+
+def return_object(obj):
+    return Response(json.dumps({
+        "data": obj,
+        "status": "OK"
+        }
+        ), mimetype='application/json')
+
 # query is a materialID
 # matchpool is a set of materialID
 def similarity_query(query, matchpool, k, algo):
     similarity_query_tags(all_acm_tags_in_list([ query ]), matchpool, k, algo)
 
+@app.route('/search/')
+def my_search():
+    matchpool = list(material_lookup)
+    
+    tags = []
 
-update_model()
+    if request.args.get('tags') is not None:
+        tags=request.args.get('tags').split(',')
+        for i in range(0, len(tags)):
+            tags[i] = int(tags[i])
+        tags = set(tags)
+        
+    if request.args.get('matID') is not None:
+        matID=int(request.args.get('matID'))
+        matchpool.remove(matID)
+        tags = all_acm_tags_in_list([ matID ])
 
-query = 154 # KRS - HW - Binary trees
-query = 55 # Bacon Number imdb  bridges
-query = 237 # 3112 module 3 project
-matchpool = list(material_lookup)
-matchpool.remove(query)
-k = 10
+    k = 10
+
+    if request.args.get('k') is not None:
+        k_query = int(request.args.get('k'))
+        if k_query > 0 and k_query < 100:
+            k = int(k_query)
+
+    algo = 'matching'
+    
+    simdata = similarity_query_tags(tags, matchpool, k, algo)
+
+    if request.args.get('matID') is not None:
+        matID=int(request.args.get('matID'))
+        simdata['query']['query_matID'] = matID
+    
+    return return_object(simdata)
+    
+# query = 154 # KRS - HW - Binary trees
+# query = 55 # Bacon Number imdb  bridges
+# query = 237 # 3112 module 3 project
+# matchpool = list(material_lookup)
+# matchpool.remove(query)
+# k = 10
 
 
 
 
-nifty = 264
-peachy = 263
-erik_ds=178
-kr_ds=185
-erik_parco=179
-kr_3112 = 266
-bk_CS1 = 326
+
+# nifty = 264
+# peachy = 263
+# erik_ds=178
+# kr_ds=185
+# erik_parco=179
+# kr_3112 = 266
+# bk_CS1 = 326
 
 
-pdc_mats = all_materials_in_collection(peachy)
-pdc_mats.extend( all_materials_in_collection(erik_parco) )
+# pdc_mats = all_materials_in_collection(peachy)
+# pdc_mats.extend( all_materials_in_collection(erik_parco) )
 
-similarity_query_tags(all_acm_tags_in_list([ query ]), pdc_mats, k, 'matching')
+# similarity_query_tags(all_acm_tags_in_list([ query ]), pdc_mats, k, 'matching')
+
+
+    
+@app.route('/class_model/<classname>')
+def class_model(classname:str):
+    if classname == "datastructure":
+
+        erik_ds=178
+        kr_ds=185
+
+
+        ds_tags = all_acm_tags_in_list(all_materials_in_collection(erik_ds)).intersection(all_acm_tags_in_list(all_materials_in_collection(kr_ds)))
+
+        print(ds_tags)
+        
+
+        return return_object({
+                    "datastructure": list(ds_tags)
+                })
+    else:
+        return json.dumps(
+            {
+                "status": "KO"
+            }
+        )
+
+
+@app.before_first_request
+def init():
+    update_model()
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(func=update_model, trigger="interval", minutes=60)
+    scheduler.start()
+    atexit.register(lambda: scheduler.shutdown())
+
+
+# query = 154 # KRS - HW - Binary trees
+# query = 55 # Bacon Number imdb  bridges
+# query = 237 # 3112 module 3 project
+# matchpool = list(material_lookup)
+# matchpool.remove(query)
+# k = 10
+
+
+
+
+# nifty = 264
+# peachy = 263
+# erik_ds=178
+# kr_ds=185
+# erik_parco=179
+# kr_3112 = 266
+# bk_CS1 = 326
+
+
+# pdc_mats = all_materials_in_collection(peachy)
+# pdc_mats.extend( all_materials_in_collection(erik_parco) )
+
+# similarity_query_tags(all_acm_tags_in_list([ query ]), pdc_mats, k, 'matching')
 
 # for n in all_materials_in_collection(bk_CS1):
 #     print ("===", n, material_lookup[n]['title'], "===")
