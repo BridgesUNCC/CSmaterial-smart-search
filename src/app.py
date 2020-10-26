@@ -233,7 +233,8 @@ def similarity_query_tags(query, matchpool, k, algo):
 
     k = min (k, len(matchpool))
     
-    sims = [ [ 0 ] * (k+1)  for i in range (0,k+1) ] 
+    sims = [ [ 1 ] * (k+1)  for i in range (0,k+1) ]
+    disims = [ [ 0 ] * (k+1)  for i in range (0,k+1) ] 
 
 
   
@@ -252,8 +253,10 @@ def similarity_query_tags(query, matchpool, k, algo):
     
     #print ("source","target","weight", sep=',', file=sys.stderr) 
     for i in range(0, k):
-        sims[0][i+1] = 1 - match_pairs[i][1]
-        sims[i+1][0] = 1 - match_pairs[i][1]
+        sims[0][i+1] = match_pairs[i][1]
+        sims[i+1][0] = match_pairs[i][1]
+        disims[0][i+1] = 1 - match_pairs[i][1]
+        disims[i+1][0] = 1 - match_pairs[i][1]
         #print ("query", match_pairs[i][0], match_pairs[i][1], sep=',', file=sys.stderr)
     
         
@@ -261,14 +264,16 @@ def similarity_query_tags(query, matchpool, k, algo):
         for j in range(i+1, k):
             if i !=j :
                 ls = similarity_material(material_lookup[match_pairs[j][0]]['id'], material_lookup[match_pairs[i][0]]['id'], 'matching')
-                sims[i+1][j+1] = 1 - ls
-                sims[j+1][i+1] = 1 - ls
+                sims[i+1][j+1] = ls
+                sims[j+1][i+1] = ls
+                disims[i+1][j+1] = 1 - ls
+                disims[j+1][i+1] = 1 - ls
                 #print (match_pairs[i][0], match_pairs[j][0], ls, sep=',', file=sys.stderr)
 
                 
 
     model = MDS(n_components=2, dissimilarity='precomputed', random_state=1)
-    out = model.fit_transform(sims)
+    out = model.fit_transform(disims)
 
     norm = 0
     for i in range (0, k+1):
@@ -291,10 +296,12 @@ def similarity_query_tags(query, matchpool, k, algo):
     }
     ret ['result'] = []
     for i in range (1, k+1):
+        result_similarity = sims[i][1:k+1]
         ret['result'].append({
             'id': match_pairs[i-1][0],
             'title': material_lookup[match_pairs[i-1][0]]['title'],
-            'similarity': match_pairs[i-1][1],
+            'query_similarity': match_pairs[i-1][1],
+            'result_similarity': result_similarity,
             "mds_x": out[i][0],
             "mds_y": out[i][1]
             })
