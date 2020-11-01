@@ -201,7 +201,7 @@ def similarity_tags (tags1, tags2, method='jaccard'):
         for a, b in bipartmatch:
             val += g[a][b]['weight']
 
-        return (val+len(exact_match)) / (len(exact_match) + 2*(len(tags1)+len(tags2)))
+        return (val+len(exact_match)) / (2*len(exact_match) + (len(tags1)+len(tags2)))
 
 #takes a list of material ID and return all acm tags contained by the materials
 def all_acm_tags_in_list (l : list) -> set:
@@ -419,7 +419,21 @@ def class_model(classname:str):
             }
         )
 
-
+@app.route('/sets/allpdc')
+def all_pdc():
+    # nifty = 264
+    peachy = 263
+    erik_parco=179
+    # erik_ds=178
+    # kr_ds=185
+    # kr_3112 = 266
+    # bk_CS1 = 326
+    pdc_mats = all_materials_in_collection(peachy)
+    pdc_mats.extend( all_materials_in_collection(erik_parco) )
+    return return_object({
+        "allpdc": list(pdc_mats)
+        })
+    
 @app.before_first_request
 def init():
     update_model()
@@ -427,45 +441,38 @@ def init():
     scheduler.add_job(func=update_model, trigger="interval", minutes=60)
     scheduler.start()
     atexit.register(lambda: scheduler.shutdown())
+    
 
 
-# query = 154 # KRS - HW - Binary trees
-# query = 55 # Bacon Number imdb  bridges
-# query = 237 # 3112 module 3 project
-# matchpool = list(material_lookup)
-# matchpool.remove(query)
-# k = 10
+    # query = 154 # KRS - HW - Binary trees
+    # query = 55 # Bacon Number imdb  bridges
+    # query = 237 # 3112 module 3 project
+    # matchpool = list(material_lookup)
+    # matchpool.remove(query)
+    # k = 10
 
 
 
 
-# nifty = 264
-# peachy = 263
-# erik_ds=178
-# kr_ds=185
-# erik_parco=179
-# kr_3112 = 266
-# bk_CS1 = 326
 
 
-# pdc_mats = all_materials_in_collection(peachy)
-# pdc_mats.extend( all_materials_in_collection(erik_parco) )
 
-# similarity_query_tags(all_acm_tags_in_list([ query ]), pdc_mats, k, 'matching')
+    
+    # similarity_query_tags(all_acm_tags_in_list([ query ]), pdc_mats, k, 'matching')
 
-# for n in all_materials_in_collection(bk_CS1):
-#     print ("===", n, material_lookup[n]['title'], "===")
-#     similarity_query_tags(all_acm_tags_in_list([ n ]), pdc_mats, k, 'matching')
-
-
-# print (all_materials_in_collection(nifty))
+    # for n in all_materials_in_collection(bk_CS1):
+    #     print ("===", n, material_lookup[n]['title'], "===")
+    #     similarity_query_tags(all_acm_tags_in_list([ n ]), pdc_mats, k, 'matching')
 
 
-# print (all_acm_tags_in_list(all_materials_in_collection(erik_ds)))
-# print (all_acm_tags_in_list(all_materials_in_collection(kr_ds)))
+    # print (all_materials_in_collection(nifty))
 
-# ds_tags = all_acm_tags_in_list(all_materials_in_collection(erik_ds)).intersection(all_acm_tags_in_list(all_materials_in_collection(kr_ds)))
 
-# print (ds_tags)
-# for t in ds_tags:
-#     print (tags_lookup[t])
+    # print (all_acm_tags_in_list(all_materials_in_collection(erik_ds)))
+    # print (all_acm_tags_in_list(all_materials_in_collection(kr_ds)))
+
+    # ds_tags = all_acm_tags_in_list(all_materials_in_collection(erik_ds)).intersection(all_acm_tags_in_list(all_materials_in_collection(kr_ds)))
+
+    # print (ds_tags)
+    # for t in ds_tags:
+    #     print (tags_lookup[t])
