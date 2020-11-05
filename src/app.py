@@ -330,14 +330,39 @@ def return_object(obj):
         }
         ), mimetype='application/json')
 
+def return_error(str):
+    return Response(json.dumps({
+        "status": "KO",
+        "reason": str
+        }
+        ), mimetype='application/json')
+
+
 # query is a materialID
 # matchpool is a set of materialID
 def similarity_query(query, matchpool, k, algo):
     similarity_query_tags(all_acm_tags_in_list([ query ]), matchpool, k, algo)
 
-@app.route('/search/')
+@app.route('/search')
 def my_search():
-    matchpool = list(material_lookup)
+    matchpool = []
+
+    matchpoolstr = 'all'
+    
+    if request.args.get('matchpool') is not None:
+        matchpoolstr = request.args.get('matchpool')
+
+    if matchpoolstr == 'all':
+        matchpool = list(material_lookup)
+    elif matchpoolstr == 'pdc':
+        peachy = 263
+        erik_parco=179
+        pdc_mats = all_materials_in_collection(peachy)
+        pdc_mats.extend( all_materials_in_collection(erik_parco) )
+        matchpool = pdc_mats
+    else:
+        return return_error("unknown matchpool parameter")
+        
     
     tags = []
 
@@ -349,7 +374,8 @@ def my_search():
         
     if request.args.get('matID') is not None:
         matID=int(request.args.get('matID'))
-        matchpool.remove(matID)
+        if matID in matchpool:
+            matchpool.remove(matID)
         tags = all_acm_tags_in_list([ matID ])
 
     k = 10
@@ -381,10 +407,8 @@ def my_search():
 
 
 # nifty = 264
-# peachy = 263
 # erik_ds=178
 # kr_ds=185
-# erik_parco=179
 # kr_3112 = 266
 # bk_CS1 = 326
 
@@ -406,8 +430,9 @@ def class_model(classname:str):
 
         ds_tags = all_acm_tags_in_list(all_materials_in_collection(erik_ds)).intersection(all_acm_tags_in_list(all_materials_in_collection(kr_ds)))
 
-        print(ds_tags)
-        
+
+        # for t in ds_tags:
+        #     print (acm_lookup[t]['title'])
 
         return return_object({
                     "datastructure": list(ds_tags)
@@ -441,8 +466,6 @@ def init():
     scheduler.add_job(func=update_model, trigger="interval", minutes=60)
     scheduler.start()
     atexit.register(lambda: scheduler.shutdown())
-    
-
 
     # query = 154 # KRS - HW - Binary trees
     # query = 55 # Bacon Number imdb  bridges
