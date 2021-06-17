@@ -323,19 +323,25 @@ def similarity_query_tags(query, matchpool, k, algo):
     return ret
     
 
+def add_response_headers(resp):
+    resp.headers.add("Access-Control-Allow-Origin", "*")
+    return resp
+
 def return_object(obj):
-    return Response(json.dumps({
+    resp = Response(json.dumps({
         "data": obj,
         "status": "OK"
         }
         ), mimetype='application/json')
+    return add_response_headers(resp)
 
 def return_error(str):
-    return Response(json.dumps({
+    resp = Response(json.dumps({
         "status": "KO",
         "reason": str
         }
         ), mimetype='application/json')
+    return add_response_headers(resp)
 
 
 # query is a materialID
