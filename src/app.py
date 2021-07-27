@@ -1,4 +1,4 @@
-from flask import Flask, request, Response
+from flask import Flask, request, Response, make_response
 from apscheduler.schedulers.background import BackgroundScheduler
 import atexit
 
@@ -398,6 +398,26 @@ def my_search():
 
     return return_object(simdata)
 
+
+@app.route('/ontologyCSV')
+def ontology_csv():
+    ret = ""
+    for t in all_acm_ids:
+        ret += str(t)
+        id = t
+        li = [ acm_lookup[id]['title'] ]
+        while 'parent' in acm_lookup[id]:
+            id = acm_lookup[id]['parent']
+            li.insert(0, acm_lookup[id]['title'])
+        for ti in li:
+            ret += "\t"+ti
+        ret += "\n"
+
+    response = make_response(ret, 200)
+    response.mimetype = "text/plain"
+    return response
+    
+        
 
 # query = 154 # KRS - HW - Binary trees
 # query = 55 # Bacon Number imdb  bridges
