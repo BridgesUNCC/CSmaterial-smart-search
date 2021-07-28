@@ -425,7 +425,7 @@ def agreement():
     for id in matID:
         mapping[int(id)] = all_acm_tags_in_list([int(id)], True)
         alltags = alltags | mapping[int(id)]
-        matinfo[int(id)] = 1 #TODO
+        matinfo[int(id)] = material_lookup[int(id)]
 
     
         
@@ -448,7 +448,8 @@ def agreement():
     
     return return_object(
         {
-            'count' :allcount,
+            'materials': matinfo,
+            'count' : allcount,
             'histogram' : histogram
         })
     
