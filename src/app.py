@@ -207,7 +207,7 @@ def similarity_tags(tags1, tags2, method='jaccard'):
         for a, b in bipartmatch:
             val += g[a][b]['weight']
 
-        return (val + len(exact_match)) / (2 * len(exact_match) + (len(tags1) + len(tags2)))
+        return (val + 2*len(exact_match)) / (2 * len(exact_match) + (len(tags1) + len(tags2)))
 
 
 # takes a list of material ID and return all acm tags contained by the materials
