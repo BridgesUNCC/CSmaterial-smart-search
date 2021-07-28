@@ -407,7 +407,51 @@ def my_search():
 
     return return_object(simdata)
 
+@app.route('/agreement')
+def agreement():
+    matID = []
+    if request.args.get('matID') is not None:
+        matID = request.args.get('matID').split(',')
 
+    if len(matID)<2:
+        return return_error("need at least 2 materials")
+
+    mapping = {}
+    alltags = set()
+
+    #material info
+    matinfo = {}
+    
+    for id in matID:
+        mapping[int(id)] = all_acm_tags_in_list([int(id)], True)
+        alltags = alltags | mapping[int(id)]
+        matinfo[int(id)] = 1 #TODO
+
+    
+        
+    #generate counts
+    allcount = {}
+        
+    for tag in alltags:
+        #print (tag)
+        count = 0
+        for id in mapping:
+            if tag in mapping[id]:
+                count += 1
+        allcount[tag] = count
+
+    #generate histogram
+    histogram = [0] * (len(mapping)+1)
+
+    for tag in allcount:
+        histogram[allcount[tag]] += 1
+    
+    return return_object(
+        {
+            'count' :allcount,
+            'histogram' : histogram
+        })
+    
 @app.route('/ontologyCSV')
 def ontology_csv():
     ret = ""
