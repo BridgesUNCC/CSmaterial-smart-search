@@ -94,7 +94,7 @@ def update_model():
     # 
     # https://cs-materials-api.herokuapp.com/data/ontology_trees
 
-    materials_json = json.loads(requests.get("https://cs-materials-api.herokuapp.com/data/materials").text)
+    materials_json = json.loads(requests.get("https://cs-materials-api.herokuapp.com/data/materials/full").text)
 
     all_material_object = materials_json['data']['materials']
     all_tags_object = materials_json['data']['tags']
@@ -175,8 +175,15 @@ def tag_match_value(t1, t2):
 
 # computes similarity between two sets of tags
 def similarity_tags(tags1, tags2, method='jaccard'):
+    print ("similarity tags")
+    print (tags1)
+    print (tags2)
+    if (len(tags1) == 0 or len(tags2) == 0):
+        return 0.0
+    
     if (method == 'jaccard'):
         return len((tags1 & tags2)) / len((tags1 | tags2))
+
     if (method == 'matching'):
 
         # count and remove exact matches
@@ -207,23 +214,31 @@ def similarity_tags(tags1, tags2, method='jaccard'):
 
 
 # takes a list of material ID and return all acm tags contained by the materials
-def all_acm_tags_in_list(l: list) -> set:
+def all_acm_tags_in_list(l: list, resolve_collection=False) -> set:
     all_t = set()
     for mid in l:
         mat = material_lookup[mid]
-        for tags in mat['tags']:
-            if tags['id'] in all_acm_ids:
-                all_t.add(tags['id'])
+        if 'tags' in mat:
+            for tags in mat['tags']:
+                if tags['id'] in all_acm_ids:
+                    all_t.add(tags['id'])
+
+        if resolve_collection and mat['type'] == 'collection':
+            print (all_t)
+            print ("recurse on "+str(mid) + str(all_materials_in_collection(mid)))
+            all_t = all_t | all_acm_tags_in_list(all_materials_in_collection(mid), resolve_collection)
+            print (all_t)
+                
     return all_t
 
 
 # computes similarity between two materialIDs
-def similarity_material(mat1: int, mat2: int, method='jaccard') -> float:
+def similarity_material(mat1: int, mat2: int, method='jaccard', resolve_collection=False) -> float:
     # print (mat1)
     # print (mat2)
     # extracting set of tags that are acm mappings
-    tag1 = all_acm_tags_in_list([mat1])
-    tag2 = all_acm_tags_in_list([mat2])
+    tag1 = all_acm_tags_in_list([mat1], resolve_collection)
+    tag2 = all_acm_tags_in_list([mat2], resolve_collection)
 
     # print (tag1)
     # print (tag2)
@@ -455,20 +470,23 @@ def similarity_matrix():
         sim_pairs = []
         match_pair = {}
 
-        for i in range(len(matID) - 1):
-            for j in range(i + 1):
+        match_pair['result'] = {}
+        match_pair['result']['similarity'] = {}
+        
+        for i in range(len(matID)):
+            mat1 = int(matID[i])
+            match_pair['result']['similarity'][mat1] = {}
+
+        for i in range(len(matID)):
+            for j in range(i + 1,len(matID)):
                 mat1 = int(matID[i])
                 mat2 = int(matID[j])
-                compute_similarity = similarity_material(mat1, mat2, method='matching')
-                s = compute_similarity
-                current_item, next_item = matID[i], matID[j-1]
-                sim_pairs.append((current_item, next_item, s))
-                sim_pairs = sorted(sim_pairs, key=(lambda x: x[2]), reverse=True)
+                sim_mat1_mat2 = similarity_material(mat1, mat2, method='matching', resolve_collection=True)
 
-                match_pair['result'] = []
-                match_pair['result'].append({
-                    '[similarity]': sim_pairs
-                })
+                match_pair['result']['similarity'][mat1][mat2] = sim_mat1_mat2
+                match_pair['result']['similarity'][mat2][mat1] = sim_mat1_mat2
+                
+
         # return similarity pairs
         return return_object(match_pair)
 
