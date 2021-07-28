@@ -552,28 +552,23 @@ def pagerank_feature():
     # declare an empty graph from the NetworkX module
     g = nx.Graph()
 
-    # add tag vertices
-    g.add_nodes_from(tags_lookup)
-
-    # add material vertices
-    g.add_nodes_from(material_lookup)
-
     # add the classification edges (between materials and tags)
-    all_t = set()
-    for mid in all_t:
+    
+    for mid in material_lookup:
         mat = material_lookup[mid]
         for tags in mat['tags']:
             if tags['id'] in all_acm_ids:
-                all_t.add(tags['id'])
-                g.add.edge(mat, tags)
+                g.add_edge("m"+str(mat['id']), "t"+str(tags['id']))
 
     # ontology edges/for all ACM tags tid: add edge between tid and parent tid
-    for m in all_acm_ids:
-        if 'parents' in acm_lookup[m]:
-            parentid = acm_lookup[m]['parents']
-            g.add_edge(parentid, m)
+    for t in all_acm_ids:
+        if 'parent' in acm_lookup[t]:
+            parentid = acm_lookup[t]['parent']
+            g.add_edge("t"+str(parentid), "t"+str(t))
 
-    f = plt.figure()
-    nx.draw(g, with_labels=True, ax=f.add_subplot(111))
-    f.savefig('graph.png')
+    # nx.write_edgelist(g, "test.edgelist", data=False)
+            
+    # f = plt.figure()
+    # nx.draw_spring(g, with_labels=True, ax=f.add_subplot(111))
+    # f.savefig('graph.png')
     return 'empty'
