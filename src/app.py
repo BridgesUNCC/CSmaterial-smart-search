@@ -6,6 +6,7 @@ import json
 import networkx as nx
 import sys
 import requests
+from matplotlib import pyplot as plt
 from sklearn.manifold import MDS
 
 app = Flask(__name__)
@@ -461,7 +462,7 @@ def similarity_matrix():
                 mat2 = int(matID[j])
                 compute_similarity = similarity_material(mat1, mat2, method='matching')
                 s = compute_similarity
-                current_item, next_item = matID[i], matID[j-1]
+                current_item, next_item = matID[i], matID[j - 1]
                 sim_pairs.append((current_item, next_item, s))
                 sim_pairs = sorted(sim_pairs, key=(lambda x: x[2]), reverse=True)
 
@@ -471,7 +472,6 @@ def similarity_matrix():
                 })
         # return similarity pairs
         return return_object(match_pair)
-
 
 
 @app.route('/class_model/<classname>')
@@ -545,3 +545,39 @@ def init():
     # print (ds_tags)
     # for t in ds_tags:
     #     print (tags_lookup[t])
+
+
+@app.route('/pagerank')
+def pagerank_feature():
+    # declare an empty graph from the NetworkX module
+    g = nx.Graph()
+
+    # add tag vertices
+    g.add_nodes_from(tags_lookup)
+
+    # add material vertices
+    g.add_nodes_from(material_lookup)
+
+    # add the classification edges (between materials and tags)
+    all_t = set()
+    for mid in all_t:
+        mat = material_lookup[mid]
+        for tags in mat['tags']:
+            if tags['id'] in all_acm_ids:
+                all_t.add(tags['id'])
+                g.add.edge(mat, tags)
+
+    key = 'children'
+    if key in acm_lookup:
+        print("Key exists")
+    else:
+        print("Key does not exist")
+
+    # ontology edges/for all ACM tags tid: add edge between tid and parent tid
+    # for m in all_acm_ids:
+        # material = acm_lookup['parents']
+        # if m in acm_lookup['parents']:
+            # g.add_edge(material, m)
+
+    nx.draw(g, with_labels=True)
+    return plt.show()
