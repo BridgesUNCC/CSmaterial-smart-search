@@ -175,9 +175,6 @@ def tag_match_value(t1, t2):
 
 # computes similarity between two sets of tags
 def similarity_tags(tags1, tags2, method='jaccard'):
-    print ("similarity tags")
-    print (tags1)
-    print (tags2)
     if (len(tags1) == 0 or len(tags2) == 0):
         return 0.0
     
@@ -224,10 +221,7 @@ def all_acm_tags_in_list(l: list, resolve_collection=False) -> set:
                     all_t.add(tags['id'])
 
         if resolve_collection and mat['type'] == 'collection':
-            print (all_t)
-            print ("recurse on "+str(mid) + str(all_materials_in_collection(mid)))
             all_t = all_t | all_acm_tags_in_list(all_materials_in_collection(mid), resolve_collection)
-            print (all_t)
                 
     return all_t
 
