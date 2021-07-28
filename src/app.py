@@ -567,17 +567,13 @@ def pagerank_feature():
                 all_t.add(tags['id'])
                 g.add.edge(mat, tags)
 
-    key = 'children'
-    if key in acm_lookup:
-        print("Key exists")
-    else:
-        print("Key does not exist")
-
     # ontology edges/for all ACM tags tid: add edge between tid and parent tid
-    # for m in all_acm_ids:
-        # material = acm_lookup['parents']
-        # if m in acm_lookup['parents']:
-            # g.add_edge(material, m)
+    for m in all_acm_ids:
+        if 'parents' in acm_lookup[m]:
+            parentid = acm_lookup[m]['parents']
+            g.add_edge(parentid, m)
 
-    nx.draw(g, with_labels=True)
-    return plt.show()
+    f = plt.figure()
+    nx.draw(g, with_labels=True, ax=f.add_subplot(111))
+    f.savefig('graph.png')
+    return 'empty'
