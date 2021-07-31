@@ -92,7 +92,7 @@ def update_model():
     global all_acm_ids
     global acm_lookup
 
-    # 
+    #
     # https://cs-materials-api.herokuapp.com/data/ontology_trees
 
     materials_json = json.loads(requests.get("https://cs-materials-api.herokuapp.com/data/materials").text)
@@ -314,7 +314,7 @@ def similarity_query_tags(query, matchpool, k, algo):
     # print("query", "query", sep=',', file=sys.stdout)
 
     # for i in range(0, k-1):
-    #     print (match_pairs[i][0], material_lookup[match_pairs[i][0]]['title'], sep=',', file=sys.stdout) 
+    #     print (match_pairs[i][0], material_lookup[match_pairs[i][0]]['title'], sep=',', file=sys.stdout)
 
     return ret
 
@@ -549,26 +549,40 @@ def init():
 
 @app.route('/pagerank')
 def pagerank_feature():
+    matID = []
     # declare an empty graph from the NetworkX module
     g = nx.Graph()
 
     # add the classification edges (between materials and tags)
-    
+
     for mid in material_lookup:
         mat = material_lookup[mid]
         for tags in mat['tags']:
             if tags['id'] in all_acm_ids:
-                g.add_edge("m"+str(mat['id']), "t"+str(tags['id']))
+                g.add_edge("m" + str(mat['id']), "t" + str(tags['id']))
 
     # ontology edges/for all ACM tags tid: add edge between tid and parent tid
     for t in all_acm_ids:
         if 'parent' in acm_lookup[t]:
             parentid = acm_lookup[t]['parent']
-            g.add_edge("t"+str(parentid), "t"+str(t))
+            g.add_edge("t" + str(parentid), "t" + str(t))
 
-    # nx.write_edgelist(g, "test.edgelist", data=False)
-            
-    # f = plt.figure()
-    # nx.draw_spring(g, with_labels=True, ax=f.add_subplot(111))
-    # f.savefig('graph.png')
-    return 'empty'
+        # nx.write_edgelist(g, "test.edgelist", data=False)
+        # f = plt.figure()
+        # nx.draw_spring(g, with_labels=True, ax=f.add_subplot(111))
+        # f.savefig('graph.png')
+        # return 'empty'
+
+    if request.args.get('matID') is not None:
+        matID = request.args.get('matID').split(',')
+        amount = len(matID)
+        if amount > 2:
+            for mid in material_lookup:
+                mat = material_lookup[mid]
+                personalization = 1 / len(str(mat['id']))
+
+                pr = nx.pagerank(g, alpha=0.85, personalization={personalization}, max_iter=100,
+                                 tol=1e-06, nstart=None,
+                                 weight='weight', dangling=None)
+
+                return print(pr)
