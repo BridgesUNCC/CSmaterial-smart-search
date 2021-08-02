@@ -515,6 +515,20 @@ def tag2(args):
     pass
 
 
+def argument_to_IDlist(argname :str) -> list :
+    if request.args.get(argname) is None:
+        return None
+
+    try:
+        matID = []
+        for id in request.args.get('matID').split(','):
+            matID.append(int(id))
+
+            return matID
+    except:
+        raise ValueError("Should be a comma separated list of integers")
+
+
 @app.route('/similarity_matrix')
 def similarity_matrix():
     matID = []
