@@ -443,14 +443,26 @@ def agreement():
     #generate histogram
     histogram = [0] * (len(mapping)+1)
 
+    percount = {}
+    for i in range(len(matID)+1):
+        percount[i] = []
+    
     for tag in allcount:
         histogram[allcount[tag]] += 1
-    
+        percount[allcount[tag]].append(
+            {
+                'id': tag,
+                'title' : tags_lookup[tag]['title']
+            })
+
+
+        
     return return_object(
         {
             'materials': matinfo,
             'count' : allcount,
-            'histogram' : histogram
+            'histogram' : histogram,
+            'percount': percount
         })
     
 @app.route('/ontologyCSV')
