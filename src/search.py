@@ -65,11 +65,10 @@ def my_search():
     if request.args.get('algo') is not None:
         algo = request.args.get('algo')
 
-    
-    
     results = similarity.similarity_query_tags(set(tags) | data.all_acm_tags_in_list(matID), matchpool, k, algo)
 
 
+    
     return util.return_object({
         'query' : {
             'tags' : list(tags),

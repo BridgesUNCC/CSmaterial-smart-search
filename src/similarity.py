@@ -108,90 +108,16 @@ def similarity_query_tags(query, matchpool, k, algo):
     start = time.time()
     k = min(k, len(matchpool))
 
-    sims = [[1] * (k + 1) for i in range(0, k + 1)]
-    disims = [[0] * (k + 1) for i in range(0, k + 1)]
 
     match_pairs = []
     for cand in matchpool:
         s = similarity_tags(query, data.all_acm_tags_in_list([cand]), algo)
         match_pairs.append((cand, s))
 
-    match_pairs = sorted(match_pairs, key=(lambda x: x[1]), reverse=True)
-
-    # print ("query: ", query, material_lookup[query]['title'])
-
-    # print (sims)
-
-    # print ("source","target","weight", sep=',', file=sys.stderr)
-    for i in range(0, k):
-        sims[0][i + 1] = match_pairs[i][1]
-        sims[i + 1][0] = match_pairs[i][1]
-        disims[0][i + 1] = 1 - match_pairs[i][1]
-        disims[i + 1][0] = 1 - match_pairs[i][1]
-        # print ("query", match_pairs[i][0], match_pairs[i][1], sep=',', file=sys.stderr)
-
-    for i in range(0, k):
-        for j in range(i + 1, k):
-            if i != j:
-                ls = similarity_material(data.material_lookup[match_pairs[j][0]]['id'],
-                                         data.material_lookup[match_pairs[i][0]]['id'], 'matching')
-                sims[i + 1][j + 1] = ls
-                sims[j + 1][i + 1] = ls
-                disims[i + 1][j + 1] = 1 - ls
-                disims[j + 1][i + 1] = 1 - ls
-                # print (match_pairs[i][0], match_pairs[j][0], ls, sep=',', file=sys.stderr)
-
-    model = MDS(n_components=2, dissimilarity='precomputed', random_state=1)
-    out = model.fit_transform(disims)
-
-    norm = 0
-    for i in range(0, k + 1):
-        if (abs(out[i][0]) > norm):
-            norm = abs(out[i][0])
-        if (abs(out[i][1]) > norm):
-            norm = abs(out[i][1])
-
-    for i in range(0, k + 1):
-        out[i][0] = out[i][0] / norm
-        out[i][1] = out[i][1] / norm
-
-    # print (out)
-
-    ret = {}
-    ret['query'] = {
-        "tags": list(query),
-        "mds_x": out[0][0],
-        "mds_y": out[0][1]
-    }
-    ret['result'] = []
-    for i in range(1, k + 1):
-        result_similarity = sims[i][1:k + 1]
-        ret['result'].append({
-            'id': match_pairs[i - 1][0],
-            'title': data.material_lookup[match_pairs[i - 1][0]]['title'],
-            'query_similarity': match_pairs[i - 1][1],
-            'result_similarity': result_similarity,
-            "mds_x": out[i][0],
-            "mds_y": out[i][1]
-        })
-
-    for i in range(0, k + 1):
-        name = "\"query\""
-        if (i > 0):
-            name = "\"" + data.material_lookup[match_pairs[i - 1][0]]['title'] + "\""
-        print(out[i][0], out[i][1], name, sep=' ')
-
-    # print("id", "label", sep=',', file=sys.stdout)
-    # print("query", "query", sep=',', file=sys.stdout)
-
-    # for i in range(0, k-1):
-    #     print (match_pairs[i][0], material_lookup[match_pairs[i][0]]['title'], sep=',', file=sys.stdout)
-
-
     end = time.time()
     print("it took "+str(end - start)+"s to build the compute similarity")
 
-    return ret
+    return match_pairs
 
 
 
