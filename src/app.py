@@ -215,28 +215,6 @@ def similarity_query_tags(query, matchpool, k, algo):
     return ret
 
 
-def add_response_headers(resp):
-    resp.headers.add("Access-Control-Allow-Origin", "*")
-    return resp
-
-
-def return_object(obj):
-    resp = Response(json.dumps({
-        "data": obj,
-        "status": "OK"
-    }
-    ), mimetype='application/json')
-    return add_response_headers(resp)
-
-
-def return_error(str):
-    resp = Response(json.dumps({
-        "status": "KO",
-        "reason": str
-    }
-    ), mimetype='application/json')
-    return add_response_headers(resp)
-
 
 # query is a materialID
 # matchpool is a set of materialID
@@ -262,7 +240,7 @@ def my_search():
         pdc_mats.extend(data.all_materials_in_collection(erik_parco))
         matchpool = pdc_mats
     else:
-        return return_error("unknown matchpool parameter")
+        return util.return_error("unknown matchpool parameter")
 
     tags = []
 
@@ -293,17 +271,17 @@ def my_search():
         matID = int(request.args.get('matID'))
         simdata['query']['query_matID'] = matID
 
-    return return_object(simdata)
+    return util.return_object(simdata)
 
 @app.route('/agreement')
 def agreement():
     matID = util.argument_to_IDlist('matID')
 
     if (matID == None):
-        return return_error("matID is a necessary parameter")
+        return util.return_error("matID is a necessary parameter")
     
     if len(matID)<2:
-        return return_error("need at least 2 materials")
+        return util.return_error("need at least 2 materials")
 
     mapping = {}
     alltags = set()
@@ -346,7 +324,7 @@ def agreement():
 
 
         
-    return return_object(
+    return util.return_object(
         {
             'materials': matinfo,
             'count' : allcount,
@@ -408,10 +386,10 @@ def tag2(args):
 def similarity_matrix():
     matID = util.argument_to_IDlist('matID')
     if matID is None:
-        return_error ("matID is a necessary parameter")
+        util.return_error ("matID is a necessary parameter")
 
     if len(matID) < 2:
-        return return_error("There need to be at least 2 materials in matID.")
+        return util.return_error("There need to be at least 2 materials in matID.")
         
 
     sim_pairs = []
@@ -433,7 +411,7 @@ def similarity_matrix():
             match_pair['result']['similarity'][mat1][mat2] = sim_mat1_mat2
             match_pair['result']['similarity'][mat2][mat1] = sim_mat1_mat2
         
-    return return_object(match_pair)
+    return util.return_object(match_pair)
 
 
 @app.route('/class_model/<classname>')
@@ -449,7 +427,7 @@ def class_model(classname: str):
         # for t in ds_tags:
         #     print (acm_lookup[t]['title'])
 
-        return return_object({
+        return util.return_object({
             "datastructure": list(ds_tags)
         })
     else:
@@ -471,7 +449,7 @@ def all_pdc():
     # bk_CS1 = 326
     pdc_mats = data.all_materials_in_collection(peachy)
     pdc_mats.extend(data.all_materials_in_collection(erik_parco))
-    return return_object({
+    return util.return_object({
         "allpdc": list(pdc_mats)
     })
 
