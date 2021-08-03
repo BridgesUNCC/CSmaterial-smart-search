@@ -1,5 +1,5 @@
 from flask import Flask, Response, Blueprint, request
-from matplotlib import pyplot as plt
+#from matplotlib import pyplot as plt
 from sklearn.manifold import MDS
 import networkx as nx
 import time
