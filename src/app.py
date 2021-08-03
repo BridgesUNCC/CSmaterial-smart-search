@@ -10,11 +10,13 @@ import data
 
 import agreement
 import similarity
+import pagerank
 
 
 app = Flask(__name__)
 app.register_blueprint(agreement.agreement_blueprint)
 app.register_blueprint(similarity.similarity_blueprint)
+app.register_blueprint(pagerank.pagerank_blueprint)
 
 # you'll need to pip3 install networkx
 
@@ -150,44 +152,3 @@ def init():
     # print (ds_tags)
     # for t in ds_tags:
     #     print (tags_lookup[t])
-
-
-@app.route('/pagerank')
-def pagerank_feature():
-    matID = []
-    # declare an empty graph from the NetworkX module
-    g = nx.Graph()
-
-    # add the classification edges (between materials and tags)
-
-    for mid in data.material_lookup:
-        mat = data.material_lookup[mid]
-        for tags in mat['tags']:
-            if tags['id'] in data.all_acm_ids:
-                g.add_edge("m" + str(mat['id']), "t" + str(tags['id']))
-
-    # ontology edges/for all ACM tags tid: add edge between tid and parent tid
-    for t in data.all_acm_ids:
-        if 'parent' in data.acm_lookup[t]:
-            parentid = data.acm_lookup[t]['parent']
-            g.add_edge("t" + str(parentid), "t" + str(t))
-
-        # nx.write_edgelist(g, "test.edgelist", data=False)
-        # f = plt.figure()
-        # nx.draw_spring(g, with_labels=True, ax=f.add_subplot(111))
-        # f.savefig('graph.png')
-        # return 'empty'
-
-    if request.args.get('matID') is not None:
-        matID = request.args.get('matID').split(',')
-        amount = len(matID)
-        if amount > 2:
-            for mid in data.material_lookup:
-                mat = data.material_lookup[mid]
-                personalization = 1 / len(str(mat['id']))
-
-                pr = nx.pagerank(g, alpha=0.85, personalization={personalization}, max_iter=100,
-                                 tol=1e-06, nstart=None,
-                                 weight='weight', dangling=None)
-
-                return print(pr)
