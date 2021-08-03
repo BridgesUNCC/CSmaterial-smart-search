@@ -2,9 +2,11 @@ from flask import Flask, Response, Blueprint, request
 from matplotlib import pyplot as plt
 from sklearn.manifold import MDS
 import networkx as nx
+import time
 
 import util
 import data
+
 
 similarity_blueprint = Blueprint('similarity', __name__)
 
@@ -103,6 +105,7 @@ def similarity_material(mat1: int, mat2: int, method='jaccard', resolve_collecti
 # query is a list of tags
 # matchpool is a set of material ids
 def similarity_query_tags(query, matchpool, k, algo):
+    start = time.time()
     k = min(k, len(matchpool))
 
     sims = [[1] * (k + 1) for i in range(0, k + 1)]
@@ -184,6 +187,10 @@ def similarity_query_tags(query, matchpool, k, algo):
     # for i in range(0, k-1):
     #     print (match_pairs[i][0], material_lookup[match_pairs[i][0]]['title'], sep=',', file=sys.stdout)
 
+
+    end = time.time()
+    print("it took "+str(end - start)+"s to build the compute similarity")
+
     return ret
 
 
@@ -217,12 +224,14 @@ def my_search():
     tags = util.argument_to_IDlist('tags')
     if tags is not None:
         tags = set(tags)
-
-    if request.args.get('matID') is not None:
-        matID = int(request.args.get('matID'))
-        if matID in matchpool:
-            matchpool.remove(matID)
-        tags = data.all_acm_tags_in_list([matID])
+    else:
+        tags= set()
+        
+    matID = util.argument_to_IDlist('matID')
+    if matID is not None:
+        for id in matID:
+            matchpool.remove(id)
+        tags = tags | data.all_acm_tags_in_list(matID)
 
     k = 10
 
@@ -235,9 +244,7 @@ def my_search():
 
     simdata = similarity_query_tags(tags, matchpool, k, algo)
 
-    if request.args.get('matID') is not None:
-        matID = int(request.args.get('matID'))
-        simdata['query']['query_matID'] = matID
+    simdata['query']['query_matID'] = matID
 
     return util.return_object(simdata)
 

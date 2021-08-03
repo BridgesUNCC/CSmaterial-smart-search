@@ -6,14 +6,16 @@ import networkx as nx
 import util
 import data
 
+import time
+
 pagerank_blueprint = Blueprint('pagerank', __name__)
 
+g = None
 
-@pagerank_blueprint.route('/pagerank')
-def pagerank_feature():
-    matID = []
-    
+def build_graph():
+    start = time.time()    
     # declare an empty graph from the NetworkX module
+    global g
     g = nx.Graph()
 
     # add the classification edges (between materials and tags)
@@ -36,7 +38,20 @@ def pagerank_feature():
         # nx.draw_spring(g, with_labels=True, ax=f.add_subplot(111))
         # f.savefig('graph.png')
         # return 'empty'
+        
 
+    end = time.time()
+    print("it took "+str(end - start)+"s to build the graph")
+    
+@pagerank_blueprint.route('/pagerank')
+def pagerank_feature():
+    if g is None:
+        build_graph()
+
+    matID = []
+
+    start = time.time()    
+    
     matID = util.argument_to_IDlist('matID')
 
     perso = {}
@@ -45,7 +60,7 @@ def pagerank_feature():
     
 
     pr = nx.pagerank(g, alpha=0.85, personalization=perso, max_iter=100,
-                     tol=1e-06, nstart=None,
+                     tol=1e-05, nstart=None,
                      weight='weight', dangling=None)
 
     res = []
@@ -60,5 +75,12 @@ def pagerank_feature():
     res.sort(key=lambda p: p[1], reverse=True)
 
     k = 30
+    end = time.time()
+    print("it took "+str(end - start)+"s to build the compute pagerank")
     
-    return util.return_object(res[0:min(k,len(res))])
+    return util.return_object({
+        'query': {
+            'matID': matID
+            },
+        'results': res[0:min(k,len(res))]
+    })
