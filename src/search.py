@@ -12,12 +12,11 @@ import similarity
 search_blueprint = Blueprint('search', __name__)
 
 
-@search_blueprint.route('/search')
-def my_search():
-    matchpool = []
+def parse_matchpool():
 
     matchpoolstr = 'all'
-
+    matchpool = None
+    
     if request.args.get('matchpool') is not None:
         matchpoolstr = request.args.get('matchpool')
 
@@ -29,7 +28,13 @@ def my_search():
         pdc_mats = data.all_materials_in_collection(peachy)
         pdc_mats.extend(data.all_materials_in_collection(erik_parco))
         matchpool = pdc_mats
-    else:
+    
+    return (matchpoolstr,matchpool)
+        
+@search_blueprint.route('/search')
+def my_search():
+    (matchpoolstr,matchpool) = parse_matchpool()
+    if matchpool is None:
         return util.return_error("unknown matchpool parameter")
 
     tags = util.argument_to_IDlist('tags')
@@ -41,20 +46,37 @@ def my_search():
     matID = util.argument_to_IDlist('matID')
     if matID is not None:
         for id in matID:
-            matchpool.remove(id)
-        tags = tags | data.all_acm_tags_in_list(matID)
+            if id in matchpool:
+                matchpool.remove(id)
+    else:
+        matID = []
 
     k = 10
 
     if request.args.get('k') is not None:
-        k_query = int(request.args.get('k'))
-        if k_query > 0 and k_query < 100:
-            k = int(k_query)
+        k = int(request.args.get('k'))
+        if k < 1:
+            return util.return_error("k must be positive")
+            
+        if k > 100:
+            k = 100
 
     algo = 'matching'
+    if request.args.get('algo') is not None:
+        algo = request.args.get('algo')
 
-    simdata = similarity.similarity_query_tags(tags, matchpool, k, algo)
+    
+    
+    results = similarity.similarity_query_tags(set(tags) | data.all_acm_tags_in_list(matID), matchpool, k, algo)
 
-    simdata['query']['query_matID'] = matID
 
-    return util.return_object(simdata)
+    return util.return_object({
+        'query' : {
+            'tags' : list(tags),
+            'matID': matID,
+            'k': k,
+            'algo': algo,
+            'matchpool': matchpoolstr
+        },
+        'results' : results
+    })

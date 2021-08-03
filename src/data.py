@@ -125,14 +125,15 @@ def tag_path(t):
 # takes a list of material ID and return all acm tags contained by the materials
 def all_acm_tags_in_list(l: list, resolve_collection=False) -> set:
     all_t = set()
-    for mid in l:
-        mat = material_lookup[mid]
-        if 'tags' in mat:
-            for tags in mat['tags']:
-                if tags['id'] in all_acm_ids:
-                    all_t.add(tags['id'])
+    if l:
+        for mid in l:
+            mat = material_lookup[mid]
+            if 'tags' in mat:
+                for tags in mat['tags']:
+                    if tags['id'] in all_acm_ids:
+                        all_t.add(tags['id'])
 
-        if resolve_collection and mat['type'] == 'collection':
-            all_t = all_t | all_acm_tags_in_list(all_materials_in_collection(mid), resolve_collection)
+            if resolve_collection and mat['type'] == 'collection':
+                all_t = all_t | all_acm_tags_in_list(all_materials_in_collection(mid), resolve_collection)
                 
     return all_t
