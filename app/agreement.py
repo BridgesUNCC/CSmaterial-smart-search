@@ -1,7 +1,7 @@
 from flask import Flask, Response, Blueprint
 
-import util
-import data
+from app import util
+from app import data
 
 agreement_blueprint = Blueprint('agreement', __name__)
 

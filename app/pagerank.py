@@ -2,11 +2,11 @@ from flask import Flask, Response, Blueprint, request
 from matplotlib import pyplot as plt
 from sklearn.manifold import MDS
 import networkx as nx
-
-import util
-import data
-
 import time
+
+from app import util
+from app import data
+
 
 pagerank_blueprint = Blueprint('pagerank', __name__)
 

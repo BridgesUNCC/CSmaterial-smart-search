@@ -5,13 +5,15 @@ import atexit
 import json
 import sys
 import requests
-import util
-import data
 
-import agreement
-import similarity
-import pagerank
-import search
+
+from app import util
+from app import data
+
+from app import agreement
+from app import similarity
+from app import pagerank
+from app import search
 
 
 app = Flask(__name__)

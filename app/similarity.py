@@ -4,8 +4,8 @@ from sklearn.manifold import MDS
 import networkx as nx
 import time
 
-import util
-import data
+from app import util
+from app import data
 
 
 similarity_blueprint = Blueprint('similarity', __name__)

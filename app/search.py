@@ -4,10 +4,10 @@ from sklearn.manifold import MDS
 import networkx as nx
 import time
 
-import util
-import data
-import similarity
-import pagerank
+from app import util
+from app import data
+from app import similarity
+from app import pagerank
 
 
 search_blueprint = Blueprint('search', __name__)
