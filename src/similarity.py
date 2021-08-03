@@ -248,6 +248,8 @@ def my_search():
 
 @similarity_blueprint.route('/similarity')
 def similarity_matrix():
+    genMDS = True
+    
     matID = util.argument_to_IDlist('matID')
     if matID is None:
         util.return_error ("matID is a necessary parameter")
@@ -270,29 +272,33 @@ def similarity_matrix():
             sims[mat1][mat2] = sim_mat1_mat2
             sims[mat2][mat1] = sim_mat1_mat2
 
-    disims = [[0] * (len(matID)) for i in range(0, len(matID))]
+
+    if (genMDS):
+
+        disims = [[0] * (len(matID)) for i in range(0, len(matID))]
     
-    for i in range (0, len(matID)):
-        for j in range (0, len(matID)):
-            if i != j:
-                disims[i][j] = 1- sims[matID[i]][matID[j]]
+        for i in range (0, len(matID)):
+            for j in range (0, len(matID)):
+                if i != j:
+                    disims[i][j] = 1- sims[matID[i]][matID[j]]
 
-    model = MDS(n_components=2, dissimilarity='precomputed', random_state=1)
-    out = model.fit_transform(disims)
+        model = MDS(n_components=2, dissimilarity='precomputed', random_state=1)
+        out = model.fit_transform(disims)
 
-    norm = 0
-    for i in range(0, len(matID) ):
-        if (abs(out[i][0]) > norm):
-            norm = abs(out[i][0])
-        if (abs(out[i][1]) > norm):
-            norm = abs(out[i][1])
+        norm = 0
+        for i in range(0, len(matID) ):
+            if (abs(out[i][0]) > norm):
+                norm = abs(out[i][0])
+            if (abs(out[i][1]) > norm):
+                norm = abs(out[i][1])
 
-    mds = {}
+        
+        mds = {}
             
-    for i in range(0, len(matID)):
-        out[i][0] = out[i][0] / norm
-        out[i][1] = out[i][1] / norm
-        mds[matID[i]] = (out[i][0], out[i][1])
+        for i in range(0, len(matID)):
+            out[i][0] = out[i][0] / norm
+            out[i][1] = out[i][1] / norm
+            mds[matID[i]] = (out[i][0], out[i][1])
             
     return util.return_object(
         {
