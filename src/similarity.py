@@ -246,7 +246,7 @@ def my_search():
     return util.return_object(simdata)
 
 
-@similarity_blueprint.route('/similarity_matrix')
+@similarity_blueprint.route('/similarity')
 def similarity_matrix():
     matID = util.argument_to_IDlist('matID')
     if matID is None:
@@ -255,16 +255,11 @@ def similarity_matrix():
     if len(matID) < 2:
         return util.return_error("There need to be at least 2 materials in matID.")
         
-
-    sim_pairs = []
-    match_pair = {}
-
-    match_pair['result'] = {}
-    match_pair['result']['similarity'] = {}
+    sims = {}
         
     for i in range(len(matID)):
         mat1 = int(matID[i])
-        match_pair['result']['similarity'][mat1] = {}
+        sims[mat1] = {}
 
     for i in range(len(matID)):
         for j in range(i + 1,len(matID)):
@@ -272,7 +267,37 @@ def similarity_matrix():
             mat2 = int(matID[j])
 
             sim_mat1_mat2 = similarity_material(mat1, mat2, method='matching', resolve_collection=True)
-            match_pair['result']['similarity'][mat1][mat2] = sim_mat1_mat2
-            match_pair['result']['similarity'][mat2][mat1] = sim_mat1_mat2
-        
-    return util.return_object(match_pair)
+            sims[mat1][mat2] = sim_mat1_mat2
+            sims[mat2][mat1] = sim_mat1_mat2
+
+    disims = [[0] * (len(matID)) for i in range(0, len(matID))]
+    
+    for i in range (0, len(matID)):
+        for j in range (0, len(matID)):
+            if i != j:
+                disims[i][j] = 1- sims[matID[i]][matID[j]]
+
+    model = MDS(n_components=2, dissimilarity='precomputed', random_state=1)
+    out = model.fit_transform(disims)
+
+    norm = 0
+    for i in range(0, len(matID) ):
+        if (abs(out[i][0]) > norm):
+            norm = abs(out[i][0])
+        if (abs(out[i][1]) > norm):
+            norm = abs(out[i][1])
+
+    mds = {}
+            
+    for i in range(0, len(matID)):
+        out[i][0] = out[i][0] / norm
+        out[i][1] = out[i][1] / norm
+        mds[matID[i]] = (out[i][0], out[i][1])
+            
+    return util.return_object(
+        {
+            'data': matID,
+            'similarity': sims,
+            'mds' : mds
+        }
+    )

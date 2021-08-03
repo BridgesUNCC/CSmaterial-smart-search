@@ -12,6 +12,7 @@ pagerank_blueprint = Blueprint('pagerank', __name__)
 @pagerank_blueprint.route('/pagerank')
 def pagerank_feature():
     matID = []
+    
     # declare an empty graph from the NetworkX module
     g = nx.Graph()
 
