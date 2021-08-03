@@ -7,6 +7,7 @@ import time
 import util
 import data
 import similarity
+import pagerank
 
 
 search_blueprint = Blueprint('search', __name__)
@@ -70,7 +71,9 @@ def my_search():
     if algo == 'jaccard' or algo == 'matching':
         results = similarity.similarity_query_tags(set(tags) | data.all_acm_tags_in_list(matID), matchpool, k, algo)
     elif algo == 'pagerank':
-        pass
+        results = pagerank.pagerank_feature(tags, matID, matchpool, k, algo)
+    else:
+        return util.return_error("algo unknown")
 
     cands = list(results.keys())
     cands.sort(reverse=True, key=(lambda x:results[x]))

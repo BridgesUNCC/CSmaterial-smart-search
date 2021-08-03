@@ -43,44 +43,40 @@ def build_graph():
     end = time.time()
     print("it took "+str(end - start)+"s to build the graph")
     
-@pagerank_blueprint.route('/pagerank')
-def pagerank_feature():
+def pagerank_feature(tags, matID, matchpool, k, algo):
     if g is None:
         build_graph()
 
-    matID = []
-
     start = time.time()    
-    
-    matID = util.argument_to_IDlist('matID')
+
+    #init seed
+    totalseed = len(matID)+len(tags)
 
     perso = {}
     for id in matID:
-        perso["m"+str(id)] = 1./len(matID)
-    
+        perso["m"+str(id)] = 1./totalseed
+
+    for id in tags:
+        perso["t"+str(id)] = 1./totalseed
+        
+
+    #run pagerank
 
     pr = nx.pagerank(g, alpha=0.85, personalization=perso, max_iter=100,
                      tol=1e-05, nstart=None,
                      weight='weight', dangling=None)
 
-    res = []
+    #format
+    res = {}
     
     for e in pr:
         if e[0] == 'm':
             id = int (e[1:])
             if id not in matID:
                 val = pr[e]
-                res.append((id, val, data.material_lookup[id]['title']))
+                res[id] = val
             
-    res.sort(key=lambda p: p[1], reverse=True)
-
-    k = 30
     end = time.time()
     print("it took "+str(end - start)+"s to build the compute pagerank")
     
-    return util.return_object({
-        'query': {
-            'matID': matID
-            },
-        'results': res[0:min(k,len(res))]
-    })
+    return res
