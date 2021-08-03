@@ -7,6 +7,7 @@ import networkx as nx
 import sys
 import requests
 import util
+import data
 from matplotlib import pyplot as plt
 from sklearn.manifold import MDS
 
@@ -72,15 +73,6 @@ def build_lookup(root, lookup=None):
     return lookup
 
 
-# takes an id of a collection and returns a list of all the materials contained by that collection (not recursive)
-def all_materials_in_collection(id):
-    url = "https://cs-materials-api.herokuapp.com/data/material/meta?id=" + str(id)
-    r = requests.get(url)
-    mat = json.loads(r.text)['data']
-    ret = []
-    for c in mat['materials']:
-        ret.append(c['id'])
-    return ret
 
 
 def update_model():
@@ -223,7 +215,7 @@ def all_acm_tags_in_list(l: list, resolve_collection=False) -> set:
                     all_t.add(tags['id'])
 
         if resolve_collection and mat['type'] == 'collection':
-            all_t = all_t | all_acm_tags_in_list(all_materials_in_collection(mid), resolve_collection)
+            all_t = all_t | all_acm_tags_in_list(data.all_materials_in_collection(mid), resolve_collection)
                 
     return all_t
 
@@ -372,8 +364,8 @@ def my_search():
     elif matchpoolstr == 'pdc':
         peachy = 263
         erik_parco = 179
-        pdc_mats = all_materials_in_collection(peachy)
-        pdc_mats.extend(all_materials_in_collection(erik_parco))
+        pdc_mats = data.all_materials_in_collection(peachy)
+        pdc_mats.extend(data.all_materials_in_collection(erik_parco))
         matchpool = pdc_mats
     else:
         return return_error("unknown matchpool parameter")
@@ -557,8 +549,8 @@ def class_model(classname: str):
         erik_ds = 178
         kr_ds = 185
 
-        ds_tags = all_acm_tags_in_list(all_materials_in_collection(erik_ds)).intersection(
-            all_acm_tags_in_list(all_materials_in_collection(kr_ds)))
+        ds_tags = all_acm_tags_in_list(data.all_materials_in_collection(erik_ds)).intersection(
+            all_acm_tags_in_list(data.all_materials_in_collection(kr_ds)))
 
         # for t in ds_tags:
         #     print (acm_lookup[t]['title'])
@@ -583,8 +575,8 @@ def all_pdc():
     # kr_ds=185
     # kr_3112 = 266
     # bk_CS1 = 326
-    pdc_mats = all_materials_in_collection(peachy)
-    pdc_mats.extend(all_materials_in_collection(erik_parco))
+    pdc_mats = data.all_materials_in_collection(peachy)
+    pdc_mats.extend(data.all_materials_in_collection(erik_parco))
     return return_object({
         "allpdc": list(pdc_mats)
     })
