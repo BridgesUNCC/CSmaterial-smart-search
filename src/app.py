@@ -15,119 +15,13 @@ app = Flask(__name__)
 
 # you'll need to pip3 install networkx
 
-# get materials file and ontology_trees file here:
-# https://cs-materials-api.herokuapp.com/data/materials
-# https://cs-materials-api.herokuapp.com/data/ontology_trees
-
-# materials_json = json.load(open("materials"))
-materials_json = {}
-
-all_material_object = None
-all_tags_object = None
-
-# print (all_material_object[0])
-# print (all_tags_object[0])
-
-# build a lookup table of materials keyed on their 'id'
-material_lookup = {}
-
-tags_lookup = {}
-
-# ontology_json = json.load(open("ontology_trees"))
-ontology_json = {}
-
-all_acm_ids = set()  # set of all acm classification tag ids
-
-acm_lookup = {}  # associate 'id' to an acm classification tag object
-
 
 @app.route('/')
 def homepage():
     return 'homepage'
 
 
-# return a set of all entry ids in a classification tree
-def classification_tree_to_set(root):
-    my_set = set()
-    my_set.add(root['id'])
-    for c in root['children']:
-        l = classification_tree_to_set(c)
-        my_set = my_set | l  # yes, that is a union operator
-    return my_set
 
-
-# add a 'parent' field in a ontology tree to enable reverse traversals
-def add_parent_info(root):
-    for c in root['children']:
-        c['parent'] = root['id']
-        add_parent_info(c)
-
-
-# build a lookup table that associate tag ids to the ontology entry
-def build_lookup(root, lookup=None):
-    if lookup == None:
-        lookup = {}
-    lookup[root['id']] = root
-    for c in root['children']:
-        build_lookup(c, lookup)
-    return lookup
-
-
-
-
-def update_model():
-    global materials_json
-    global all_material_object
-    global all_tags_object
-    global material_lookup
-    global tags_lookup
-    global ontology_json
-    global all_acm_ids
-    global acm_lookup
-
-    #
-    # https://cs-materials-api.herokuapp.com/data/ontology_trees
-
-    materials_json = json.loads(requests.get("https://cs-materials-api.herokuapp.com/data/materials/full").text)
-
-    all_material_object = materials_json['data']['materials']
-    all_tags_object = materials_json['data']['tags']
-
-    material_lookup = {}
-    for m in all_material_object:
-        material_lookup[m['id']] = m
-
-    tags_lookup = {}
-    for t in all_tags_object:
-        tags_lookup[t['id']] = t
-
-    ontology_json = json.loads(requests.get("https://cs-materials-api.herokuapp.com/data/ontology_trees").text)
-
-    add_parent_info(ontology_json['data']['acm'])
-
-    all_acm_ids = classification_tree_to_set(ontology_json['data']['acm'])
-
-    acm_lookup = build_lookup(ontology_json['data']['acm'])
-
-
-# return the path from tag to the root
-# takes tag id (not tag object)
-def tag_path_reverse(t):
-    if 'parent' not in acm_lookup[t]:
-        return [t]
-    else:
-        l = list()
-        l.append(t)
-        l.extend(tag_path_reverse(acm_lookup[t]['parent']))
-        return l
-
-
-# return the path from root of the ontology to tag
-# takes tag id (not tag object)
-def tag_path(t):
-    l = tag_path_reverse(t)
-    l.reverse()
-    return l
 
 
 # return similarity value between two tags where the two tags have a
@@ -152,8 +46,8 @@ def tag_match_value(t1, t2):
     if t1 == t2:
         return 1
     else:
-        tp1 = tag_path(t1)
-        tp2 = tag_path(t2)
+        tp1 = data.tag_path(t1)
+        tp2 = data.tag_path(t2)
         # print (str(tp1)+ "," + str(tp2))
 
         first_diff = 0
@@ -208,10 +102,10 @@ def similarity_tags(tags1, tags2, method='jaccard'):
 def all_acm_tags_in_list(l: list, resolve_collection=False) -> set:
     all_t = set()
     for mid in l:
-        mat = material_lookup[mid]
+        mat = data.material_lookup[mid]
         if 'tags' in mat:
             for tags in mat['tags']:
-                if tags['id'] in all_acm_ids:
+                if tags['id'] in data.all_acm_ids:
                     all_t.add(tags['id'])
 
         if resolve_collection and mat['type'] == 'collection':
@@ -264,8 +158,8 @@ def similarity_query_tags(query, matchpool, k, algo):
     for i in range(0, k):
         for j in range(i + 1, k):
             if i != j:
-                ls = similarity_material(material_lookup[match_pairs[j][0]]['id'],
-                                         material_lookup[match_pairs[i][0]]['id'], 'matching')
+                ls = similarity_material(data.material_lookup[match_pairs[j][0]]['id'],
+                                         data.material_lookup[match_pairs[i][0]]['id'], 'matching')
                 sims[i + 1][j + 1] = ls
                 sims[j + 1][i + 1] = ls
                 disims[i + 1][j + 1] = 1 - ls
@@ -299,7 +193,7 @@ def similarity_query_tags(query, matchpool, k, algo):
         result_similarity = sims[i][1:k + 1]
         ret['result'].append({
             'id': match_pairs[i - 1][0],
-            'title': material_lookup[match_pairs[i - 1][0]]['title'],
+            'title': data.material_lookup[match_pairs[i - 1][0]]['title'],
             'query_similarity': match_pairs[i - 1][1],
             'result_similarity': result_similarity,
             "mds_x": out[i][0],
@@ -309,7 +203,7 @@ def similarity_query_tags(query, matchpool, k, algo):
     for i in range(0, k + 1):
         name = "\"query\""
         if (i > 0):
-            name = "\"" + material_lookup[match_pairs[i - 1][0]]['title'] + "\""
+            name = "\"" + data.material_lookup[match_pairs[i - 1][0]]['title'] + "\""
         print(out[i][0], out[i][1], name, sep=' ')
 
     # print("id", "label", sep=',', file=sys.stdout)
@@ -360,7 +254,7 @@ def my_search():
         matchpoolstr = request.args.get('matchpool')
 
     if matchpoolstr == 'all':
-        matchpool = list(material_lookup)
+        matchpool = list(data.material_lookup)
     elif matchpoolstr == 'pdc':
         peachy = 263
         erik_parco = 179
@@ -420,7 +314,7 @@ def agreement():
     for id in matID:
         mapping[id] = all_acm_tags_in_list([id], True)
         alltags = alltags | mapping[id]
-        matinfo[id] = material_lookup[id]
+        matinfo[id] = data.material_lookup[id]
 
     
         
@@ -447,7 +341,7 @@ def agreement():
         percount[allcount[tag]].append(
             {
                 'id': tag,
-                'title' : tags_lookup[tag]['title']
+                'title' : data.tags_lookup[tag]['title']
             })
 
 
@@ -463,13 +357,13 @@ def agreement():
 @app.route('/ontologyCSV')
 def ontology_csv():
     ret = ""
-    for t in all_acm_ids:
+    for t in data.all_acm_ids:
         ret += str(t)
         id = t
-        li = [ acm_lookup[id]['title'] ]
-        while 'parent' in acm_lookup[id]:
-            id = acm_lookup[id]['parent']
-            li.insert(0, acm_lookup[id]['title'])
+        li = [ data.acm_lookup[id]['title'] ]
+        while 'parent' in data.acm_lookup[id]:
+            id = data.acm_lookup[id]['parent']
+            li.insert(0, data.acm_lookup[id]['title'])
         for ti in li:
             ret += "\t"+ti
         ret += "\n"
@@ -584,9 +478,9 @@ def all_pdc():
 
 @app.before_first_request
 def init():
-    update_model()
+    data.update_model()
     scheduler = BackgroundScheduler()
-    scheduler.add_job(func=update_model, trigger="interval", minutes=60)
+    scheduler.add_job(func=data.update_model, trigger="interval", minutes=60)
     scheduler.start()
     atexit.register(lambda: scheduler.shutdown())
 
@@ -623,16 +517,16 @@ def pagerank_feature():
 
     # add the classification edges (between materials and tags)
 
-    for mid in material_lookup:
-        mat = material_lookup[mid]
+    for mid in data.material_lookup:
+        mat = data.material_lookup[mid]
         for tags in mat['tags']:
-            if tags['id'] in all_acm_ids:
+            if tags['id'] in data.all_acm_ids:
                 g.add_edge("m" + str(mat['id']), "t" + str(tags['id']))
 
     # ontology edges/for all ACM tags tid: add edge between tid and parent tid
-    for t in all_acm_ids:
-        if 'parent' in acm_lookup[t]:
-            parentid = acm_lookup[t]['parent']
+    for t in data.all_acm_ids:
+        if 'parent' in data.acm_lookup[t]:
+            parentid = data.acm_lookup[t]['parent']
             g.add_edge("t" + str(parentid), "t" + str(t))
 
         # nx.write_edgelist(g, "test.edgelist", data=False)
@@ -645,8 +539,8 @@ def pagerank_feature():
         matID = request.args.get('matID').split(',')
         amount = len(matID)
         if amount > 2:
-            for mid in material_lookup:
-                mat = material_lookup[mid]
+            for mid in data.material_lookup:
+                mat = data.material_lookup[mid]
                 personalization = 1 / len(str(mat['id']))
 
                 pr = nx.pagerank(g, alpha=0.85, personalization={personalization}, max_iter=100,
