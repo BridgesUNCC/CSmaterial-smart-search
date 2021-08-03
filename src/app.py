@@ -6,6 +6,7 @@ import json
 import networkx as nx
 import sys
 import requests
+import util
 from matplotlib import pyplot as plt
 from sklearn.manifold import MDS
 
@@ -410,10 +411,11 @@ def my_search():
 
 @app.route('/agreement')
 def agreement():
-    matID = []
-    if request.args.get('matID') is not None:
-        matID = request.args.get('matID').split(',')
+    matID = util.argument_to_IDlist('matID')
 
+    if (matID == None):
+        return return_error("matID is a necessary parameter")
+    
     if len(matID)<2:
         return return_error("need at least 2 materials")
 
@@ -424,9 +426,9 @@ def agreement():
     matinfo = {}
     
     for id in matID:
-        mapping[int(id)] = all_acm_tags_in_list([int(id)], True)
-        alltags = alltags | mapping[int(id)]
-        matinfo[int(id)] = material_lookup[int(id)]
+        mapping[id] = all_acm_tags_in_list([id], True)
+        alltags = alltags | mapping[id]
+        matinfo[id] = material_lookup[id]
 
     
         
@@ -515,60 +517,37 @@ def tag2(args):
     pass
 
 
-def argument_to_IDlist(argname :str) -> list :
-    if request.args.get(argname) is None:
-        return None
-
-    try:
-        matID = []
-        for id in request.args.get('matID').split(','):
-            matID.append(int(id))
-
-            return matID
-    except:
-        raise ValueError("Should be a comma separated list of integers")
-
 
 @app.route('/similarity_matrix')
 def similarity_matrix():
-    matID = []
-    if request.args.get('matID') is not None:
-        matID = request.args.get('matID').split(',')
-        amount = len(matID)
+    matID = util.argument_to_IDlist('matID')
+    if matID is None:
+        return_error ("matID is a necessary parameter")
 
-        # if the list has one material, return error
-
-        if amount == 1:
-            return return_error("There is only one material in the set.")
-        # if there are no materials in the set, return error
-
-    if request.args.get('matID') is None:
-        return return_error("There are no materials in the set.")
-
-    # compute similarity between material 1 and material 2
-
-    elif request.args.get('matID') is not None:
-        matID = request.args.get('matID').split(',')
-
-        # mat1 = int(matID[0])
-        # mat2 = int(matID[1])
-
-        sim_pairs = []
-        match_pair = {}
-
-        match_pair['result'] = {}
-        match_pair['result']['similarity'] = {}
+    if len(matID) < 2:
+        return return_error("There need to be at least 2 materials in matID.")
         
-        for i in range(len(matID)):
-            mat1 = int(matID[i])
-            match_pair['result']['similarity'][mat1] = {}
 
-        for i in range(len(matID)):
-            for j in range(i + 1,len(matID)):
-                mat1 = int(matID[i])
-                mat2 = int(matID[j])
-        # return similarity pairs
-        return return_object(match_pair)
+    sim_pairs = []
+    match_pair = {}
+
+    match_pair['result'] = {}
+    match_pair['result']['similarity'] = {}
+        
+    for i in range(len(matID)):
+        mat1 = int(matID[i])
+        match_pair['result']['similarity'][mat1] = {}
+
+    for i in range(len(matID)):
+        for j in range(i + 1,len(matID)):
+            mat1 = int(matID[i])
+            mat2 = int(matID[j])
+
+            sim_mat1_mat2 = similarity_material(mat1, mat2, method='matching', resolve_collection=True)
+            match_pair['result']['similarity'][mat1][mat2] = sim_mat1_mat2
+            match_pair['result']['similarity'][mat2][mat1] = sim_mat1_mat2
+        
+    return return_object(match_pair)
 
 
 @app.route('/class_model/<classname>')
