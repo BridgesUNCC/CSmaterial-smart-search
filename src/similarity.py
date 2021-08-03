@@ -214,12 +214,8 @@ def my_search():
     else:
         return util.return_error("unknown matchpool parameter")
 
-    tags = []
-
-    if request.args.get('tags') is not None:
-        tags = request.args.get('tags').split(',')
-        for i in range(0, len(tags)):
-            tags[i] = int(tags[i])
+    tags = util.argument_to_IDlist('tags')
+    if tags is not None:
         tags = set(tags)
 
     if request.args.get('matID') is not None:
@@ -249,7 +245,7 @@ def my_search():
 @similarity_blueprint.route('/similarity')
 def similarity_matrix():
     genMDS = True
-    
+        
     matID = util.argument_to_IDlist('matID')
     if matID is None:
         util.return_error ("matID is a necessary parameter")
@@ -272,6 +268,7 @@ def similarity_matrix():
             sims[mat1][mat2] = sim_mat1_mat2
             sims[mat2][mat1] = sim_mat1_mat2
 
+    mds = {}
 
     if (genMDS):
 
@@ -293,7 +290,6 @@ def similarity_matrix():
                 norm = abs(out[i][1])
 
         
-        mds = {}
             
         for i in range(0, len(matID)):
             out[i][0] = out[i][0] / norm
