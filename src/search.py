@@ -67,9 +67,10 @@ def my_search():
 
     results = {}
 
-    
-    results = similarity.similarity_query_tags(set(tags) | data.all_acm_tags_in_list(matID), matchpool, k, algo)
-
+    if algo == 'jaccard' or algo == 'matching':
+        results = similarity.similarity_query_tags(set(tags) | data.all_acm_tags_in_list(matID), matchpool, k, algo)
+    elif algo == 'pagerank':
+        pass
 
     cands = list(results.keys())
     cands.sort(reverse=True, key=(lambda x:results[x]))
