@@ -11,12 +11,14 @@ import data
 import agreement
 import similarity
 import pagerank
+import search
 
 
 app = Flask(__name__)
 app.register_blueprint(agreement.agreement_blueprint)
 app.register_blueprint(similarity.similarity_blueprint)
 app.register_blueprint(pagerank.pagerank_blueprint)
+app.register_blueprint(search.search_blueprint)
 
 # you'll need to pip3 install networkx
 
