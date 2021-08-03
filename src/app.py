@@ -11,7 +11,10 @@ import data
 from matplotlib import pyplot as plt
 from sklearn.manifold import MDS
 
+import agreement
+
 app = Flask(__name__)
+app.register_blueprint(agreement.agreement_blueprint)
 
 # you'll need to pip3 install networkx
 
@@ -98,20 +101,6 @@ def similarity_tags(tags1, tags2, method='jaccard'):
         return (val + 2*len(exact_match)) / (2 * len(exact_match) + (len(tags1) + len(tags2)))
 
 
-# takes a list of material ID and return all acm tags contained by the materials
-def all_acm_tags_in_list(l: list, resolve_collection=False) -> set:
-    all_t = set()
-    for mid in l:
-        mat = data.material_lookup[mid]
-        if 'tags' in mat:
-            for tags in mat['tags']:
-                if tags['id'] in data.all_acm_ids:
-                    all_t.add(tags['id'])
-
-        if resolve_collection and mat['type'] == 'collection':
-            all_t = all_t | all_acm_tags_in_list(data.all_materials_in_collection(mid), resolve_collection)
-                
-    return all_t
 
 
 # computes similarity between two materialIDs
@@ -119,8 +108,8 @@ def similarity_material(mat1: int, mat2: int, method='jaccard', resolve_collecti
     # print (mat1)
     # print (mat2)
     # extracting set of tags that are acm mappings
-    tag1 = all_acm_tags_in_list([mat1], resolve_collection)
-    tag2 = all_acm_tags_in_list([mat2], resolve_collection)
+    tag1 = data.all_acm_tags_in_list([mat1], resolve_collection)
+    tag2 = data.all_acm_tags_in_list([mat2], resolve_collection)
 
     # print (tag1)
     # print (tag2)
@@ -138,7 +127,7 @@ def similarity_query_tags(query, matchpool, k, algo):
 
     match_pairs = []
     for cand in matchpool:
-        s = similarity_tags(query, all_acm_tags_in_list([cand]), algo)
+        s = similarity_tags(query, data.all_acm_tags_in_list([cand]), algo)
         match_pairs.append((cand, s))
 
     match_pairs = sorted(match_pairs, key=(lambda x: x[1]), reverse=True)
@@ -219,7 +208,7 @@ def similarity_query_tags(query, matchpool, k, algo):
 # query is a materialID
 # matchpool is a set of materialID
 def similarity_query(query, matchpool, k, algo):
-    similarity_query_tags(all_acm_tags_in_list([query]), matchpool, k, algo)
+    similarity_query_tags(data.all_acm_tags_in_list([query]), matchpool, k, algo)
 
 
 @app.route('/search')
@@ -254,7 +243,7 @@ def my_search():
         matID = int(request.args.get('matID'))
         if matID in matchpool:
             matchpool.remove(matID)
-        tags = all_acm_tags_in_list([matID])
+        tags = data.all_acm_tags_in_list([matID])
 
     k = 10
 
@@ -273,64 +262,6 @@ def my_search():
 
     return util.return_object(simdata)
 
-@app.route('/agreement')
-def agreement():
-    matID = util.argument_to_IDlist('matID')
-
-    if (matID == None):
-        return util.return_error("matID is a necessary parameter")
-    
-    if len(matID)<2:
-        return util.return_error("need at least 2 materials")
-
-    mapping = {}
-    alltags = set()
-
-    #material info
-    matinfo = {}
-    
-    for id in matID:
-        mapping[id] = all_acm_tags_in_list([id], True)
-        alltags = alltags | mapping[id]
-        matinfo[id] = data.material_lookup[id]
-
-    
-        
-    #generate counts
-    allcount = {}
-        
-    for tag in alltags:
-        #print (tag)
-        count = 0
-        for id in mapping:
-            if tag in mapping[id]:
-                count += 1
-        allcount[tag] = count
-
-    #generate histogram
-    histogram = [0] * (len(mapping)+1)
-
-    percount = {}
-    for i in range(len(matID)+1):
-        percount[i] = []
-    
-    for tag in allcount:
-        histogram[allcount[tag]] += 1
-        percount[allcount[tag]].append(
-            {
-                'id': tag,
-                'title' : data.tags_lookup[tag]['title']
-            })
-
-
-        
-    return util.return_object(
-        {
-            'materials': matinfo,
-            'count' : allcount,
-            'histogram' : histogram,
-            'percount': percount
-        })
     
 @app.route('/ontologyCSV')
 def ontology_csv():
@@ -421,8 +352,8 @@ def class_model(classname: str):
         erik_ds = 178
         kr_ds = 185
 
-        ds_tags = all_acm_tags_in_list(data.all_materials_in_collection(erik_ds)).intersection(
-            all_acm_tags_in_list(data.all_materials_in_collection(kr_ds)))
+        ds_tags = data.all_acm_tags_in_list(data.all_materials_in_collection(erik_ds)).intersection(
+            data.all_acm_tags_in_list(data.all_materials_in_collection(kr_ds)))
 
         # for t in ds_tags:
         #     print (acm_lookup[t]['title'])
