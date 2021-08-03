@@ -104,15 +104,17 @@ def similarity_material(mat1: int, mat2: int, method='jaccard', resolve_collecti
 
 # query is a list of tags
 # matchpool is a set of material ids
-def similarity_query_tags(query, matchpool, k, algo):
+#returns a dictionary mapping materials to a score (the higher the more similar)
+def similarity_query_tags(query, matchpool, k:int, algo:str):
     start = time.time()
     k = min(k, len(matchpool))
 
-
-    match_pairs = []
+    print (query)
+    
+    match_pairs = {}
     for cand in matchpool:
         s = similarity_tags(query, data.all_acm_tags_in_list([cand]), algo)
-        match_pairs.append((cand, s))
+        match_pairs[cand] = s
 
     end = time.time()
     print("it took "+str(end - start)+"s to build the compute similarity")

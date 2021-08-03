@@ -65,9 +65,24 @@ def my_search():
     if request.args.get('algo') is not None:
         algo = request.args.get('algo')
 
+    results = {}
+
+    
     results = similarity.similarity_query_tags(set(tags) | data.all_acm_tags_in_list(matID), matchpool, k, algo)
 
 
+    cands = list(results.keys())
+    cands.sort(reverse=True, key=(lambda x:results[x]))
+    cands = cands[0:min(k-1,len(cands))]
+
+    topk = []
+    for c in cands:
+        topk.append({
+            'id' : c,
+            'score' : results[c],
+            'title': data.material_lookup[c]['title']
+            }
+        )
     
     return util.return_object({
         'query' : {
@@ -77,5 +92,5 @@ def my_search():
             'algo': algo,
             'matchpool': matchpoolstr
         },
-        'results' : results
+        'results' : topk
     })
