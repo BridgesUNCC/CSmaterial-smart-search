@@ -189,6 +189,6 @@ def similarity_matrix():
         {
             'data': matID,
             'similarity': sims,
-            'mds' : mds
+            '2dembedding' : mds
         }
     )
