@@ -3,12 +3,14 @@ from flask import Flask, Response, Blueprint, request
 from sklearn.manifold import MDS
 import networkx as nx
 import time
+from flask_cors  import CORS
 
 from app import util
 from app import data
 
 
 pagerank_blueprint = Blueprint('pagerank', __name__)
+CORS(pagerank_blueprint)
 
 g = None
 

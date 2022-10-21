@@ -1,10 +1,11 @@
 from flask import Flask, Response, Blueprint
+from flask_cors  import CORS
 
 from app import util
 from app import data
 
 agreement_blueprint = Blueprint('agreement', __name__)
-
+CORS(agreement_blueprint)
 
 @agreement_blueprint.route('/agreement')
 def agreement():

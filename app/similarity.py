@@ -6,10 +6,10 @@ import time
 
 from app import util
 from app import data
-
+from flask_cors  import CORS
 
 similarity_blueprint = Blueprint('similarity', __name__)
-
+CORS (similarity_blueprint)
 
 
 # return similarity value between two tags where the two tags have a

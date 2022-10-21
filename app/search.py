@@ -1,4 +1,6 @@
 from flask import Flask, Response, Blueprint, request
+from flask_cors  import CORS
+
 #from matplotlib import pyplot as plt
 from sklearn.manifold import MDS
 import networkx as nx
@@ -11,7 +13,7 @@ from app import pagerank
 
 
 search_blueprint = Blueprint('search', __name__)
-
+CORS (search_blueprint)
 
 def parse_matchpool():
 
