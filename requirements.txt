@@ -1,6 +1,6 @@
 APScheduler==3.6.0
 Flask==2.1.0
-flask-cors=3.0.10
+flask-cors==3.0.10
 gunicorn==19.9.0
 networkx==2.5
 requests==2.21.0
