@@ -6,3 +6,5 @@ networkx==2.5
 requests==2.21.0
 requests-toolbelt==0.9.1
 sklearn==0.0
+Werkzeug==2.2.2
+numpy==1.23.4

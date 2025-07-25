@@ -67,3 +67,8 @@ In general list of materials are comma separated list. where the ID itself is a 
 
 ```matchpool``` can be ```all``` or ```pdc``` as defined in function ```parse_matchpool()```
 
+
+## install
+
+Check the python version in runtime.txt. Create a venv with that python install
+install packages from requiremsnts.txt using pip.
